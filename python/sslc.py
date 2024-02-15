@@ -44,10 +44,33 @@ class VarType(Enum):
   INT = 1
   FLOAT = 2
   STR = 3
+  BOOL = 4
 
+TOKEN_TYPE_TO_VARTYPE = {
+    TokenType.INT_CONST: VarType.INT,
+    TokenType.INT_VAR: VarType.INT,
+    TokenType.FLOAT_CONST: VarType.FLOAT,
+    TokenType.FLOAT_VAR: VarType.FLOAT,
+    TokenType.STR_CONST: VarType.STR,
+    TokenType.STR_VAR: VarType.STR
+   }
+
+
+class Token:
+  def __init__(self, tokenType, value):
+    self.tokenType = tokenType
+    self.value = value
+
+  def __str__(self):
+    return str([self.tokenType, self.value])
+
+  def isEof(self):
+    return self.tokenType == TokenType.EOF
+
+  def varType(self):
+    return TOKEN_TYPE_TO_VARTYPE[self.tokenType]
 
 class Lexer:
-
   def __init__(self, text):
     self.text = text
     self.loc = 0
@@ -75,7 +98,7 @@ class Lexer:
         self.advance()
 
     if self.cc == '':
-      return (TokenType.EOF, '')
+      return Token(TokenType.EOF, '')
 
     if self.cc.isdigit():
       return self.makeNumber()
@@ -97,9 +120,9 @@ class Lexer:
       while self.cc.isdigit():
         num += self.cc
         self.advance()
-      return (TokenType.FLOAT_CONST, float(num))
+      return Token(TokenType.FLOAT_CONST, float(num))
 
-    return (TokenType.INT_CONST, int(num))
+    return Token(TokenType.INT_CONST, int(num))
 
   def makeText(self):
     cc = self.cc
@@ -107,11 +130,11 @@ class Lexer:
     if not self.cc.isalpha():
       # next char is not alphanumeric: it's a variable
       if cc >= 'a' and cc <= 'h':
-        return (TokenType.FLOAT_VAR, cc)
+        return Token(TokenType.FLOAT_VAR, cc)
       elif cc >= 'i' and cc <= 'n':
-        return (TokenType.INT_VAR, cc)
+        return Token(TokenType.INT_VAR, cc)
       else:
-        return (TokenType.STR_VAR, cc)
+        return Token(TokenType.STR_VAR, cc)
     kw = cc
     while self.cc.isalpha():
       kw += self.cc
@@ -121,7 +144,7 @@ class Lexer:
     if not kw_enum:
       print("Unknown keyword " + kw)
       exit(-1)
-    return (TokenType.KEYWORD, kw_enum)
+    return Token(TokenType.KEYWORD, kw_enum)
 
   def makeSymbol(self):
     cc = self.cc
@@ -129,21 +152,17 @@ class Lexer:
     if cc == '!':
       if self.cc == '=':
         self.advance()
-        return (TokenType.SYMBOL, '!=')
+        return Token(TokenType.SYMBOL, '!=')
       print("Unknown symbol " + cc + self.cc)
       exit(-1)
 
     if cc in EQ_FOLLOWS and self.cc == '=':
       self.advance()
-      return (TokenType.SYMBOL, cc + "=")
+      return Token(TokenType.SYMBOL, cc + "=")
     if cc in SYMBOLS:
-      return (TokenType.SYMBOL, cc)
+      return Token(TokenType.SYMBOL, cc)
     print("Unknown symbol " + cc)
     exit(-1)
-
-
-def isEof(token):
-  return token[0] == TokenType.EOF
 
 
 class Parser:
@@ -158,16 +177,17 @@ class Parser:
     print("  ; %s" % str(self.token))
     return self.token
 
+  def fail(self):
+    print("Unknown token %s" % str(self.token))
+    exit(-1)
+
   def parse(self):
     self.advance()
-    return self.program()
-
-  def program(self):
     # Read statements until eof
     print("global main")
     print("section .text")
     print("main:")
-    while not isEof(self.token):
+    while not self.token.isEof():
       self.statement()
     print("  extern exit")
     print("  call exit\n")
@@ -177,40 +197,39 @@ class Parser:
         print("  %s" % entry)
 
   def statement(self):
-    if self.token[0] in (TokenType.INT_VAR, TokenType.FLOAT_VAR, TokenType.STR_VAR):
+    if self.token.tokenType in (TokenType.INT_VAR, TokenType.FLOAT_VAR, TokenType.STR_VAR):
       self.assignment()
       return
-    if self.token[0] != TokenType.KEYWORD:
+    if self.token.tokenType != TokenType.KEYWORD:
       print("Unknown token " + self.token[1])
       exit()
-    if self.token[1] == Keyword.IF:
+    if self.token.value == Keyword.IF:
       self.parseIf()
       return
-    if self.token[1] in (Keyword.PRINT, Keyword.PRINTLN):
+    if self.token.value in (Keyword.PRINT, Keyword.PRINTLN):
       self.parsePrint()
       return
-    if self.token[1] == Keyword.FOR:
+    if self.token.value == Keyword.FOR:
       self.parseFor()
       return
     self.fail()
 
-  def fail(self):
-    print("Unknown token %s" % self.token)
-    exit(-1)
-
   def assignment(self):
-    var = self.token[1]
+    var = self.token.value
     self.addData("_%s: dq 0" % var)
-    varType = self.token[0]
+    varType = self.token.varType()
     self.advance()
-    if self.token[1] != '=':
+    if self.token.value != '=':
       print(";  bad?")
       self.fail()
       return
     self.advance()
     exprType = self.expr()
     # TODO: check exprtype
-    if varType == TokenType.INT_VAR:
+    if varType != exprType:
+      print("Cannot assign %s to %s", exprType, varType)
+      exit(-1)
+    if varType == VarType.INT:
       print("  mov [_%s], RAX" % var)
       return
     self.fail()
@@ -223,7 +242,7 @@ class Parser:
     self.data.add(entry)
 
   def parsePrint(self):
-    is_println = self.token[1] == Keyword.PRINTLN
+    is_println = self.token.value == Keyword.PRINTLN
     self.advance()
     exprType = self.expr()
     if exprType == VarType.INT:
@@ -248,17 +267,22 @@ class Parser:
     return self.atom()
 
   def atom(self):
-    if self.token[0] == TokenType.INT_CONST:
-      const = self.token[1]
+    if self.token.tokenType == TokenType.INT_CONST:
+      const = self.token.value
       print("  mov RAX, %s" % const)
       self.advance()
       return VarType.INT
-    if self.token[0] == TokenType.INT_VAR:
-      self.addData("_%s: dq 0" % self.token[1])
-      print ("  mov RAX, [_%s]" % self.token[1])
+    elif self.token.tokenType == TokenType.INT_VAR:
+      self.addData("_%s: dq 0" % self.token.value)
+      print ("  mov RAX, [_%s]" % self.token.value)
       self.advance()
       return VarType.INT
-
+    elif self.token.tokenType == TokenType.SYMBOL and self.token.value == '(':
+      self.advance()
+      varType = self.expr()
+      if self.token.tokenType == TokenType.SYMBOL and self.token.value == ')':
+        self.advance()
+        return varType
     self.fail()
 
 
@@ -270,7 +294,7 @@ def main():
     println i + 1234
   endif
   '''
-  p = Parser("i=123 println i")
+  p = Parser("i=(123) println (234)")
   p.parse()
 
 
