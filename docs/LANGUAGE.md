@@ -4,13 +4,20 @@
 
 All variables are one letter.
 
-Like in Fortran, variables `i` through `n` are integers (64-bits).
+Like in Fortran, variables `i` through `n` are integers (32-bits).
 
 Variables `a` through `h` are floats (64-bits)
 
 (Future expansion: variables `o` through `r` are booleans)
 
 Variables `s` through `z` are strings.
+
+
+## Constants
+
+Integer constants can be from -2^31-1 to 2^31.
+
+Floating point constants must include a dot (e.g., `3.0`)
 
 
 ## Comments
@@ -35,6 +42,12 @@ There are assignments, control flow, and output statements.
 
 `(variable) = (expression)`
 
+Expressions are limited to a simple assignment, a single unary or a single
+binary expression, e.g.,
+
+`a = 3.0`
+`b = a + 1.0`
+`c = a * b`
 
 ### Control flow
 
@@ -43,7 +56,7 @@ if [comparison] then
   statements
 else
   statements
-endif`
+endif
 ```
 
 ```
@@ -57,7 +70,6 @@ endfor
 `print expr`
 
 `println expr`
-
 
 
 ## Example
