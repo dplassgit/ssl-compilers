@@ -40,6 +40,11 @@ KEYWORDS = {
     'println':Keyword.PRINTLN
 }
 
+class VarType(Enum):
+  INT = 1
+  FLOAT = 2
+  STR = 3
+
 
 class Lexer:
 
@@ -71,7 +76,7 @@ class Lexer:
 
     if self.cc == '':
       return (TokenType.EOF, '')
-      
+
     if self.cc.isdigit():
       return self.makeNumber()
     elif self.cc.isalpha():
@@ -93,7 +98,7 @@ class Lexer:
         num += self.cc
         self.advance()
       return (TokenType.FLOAT_CONST, float(num))
-    
+
     return (TokenType.INT_CONST, int(num))
 
   def makeText(self):
@@ -103,7 +108,7 @@ class Lexer:
       # next char is not alphanumeric: it's a variable
       if cc >= 'a' and cc <= 'h':
         return (TokenType.FLOAT_VAR, cc)
-      elif self.cc >= 'i' and self.cc <= 'n':
+      elif cc >= 'i' and cc <= 'n':
         return (TokenType.INT_VAR, cc)
       else:
         return (TokenType.STR_VAR, cc)
@@ -127,7 +132,7 @@ class Lexer:
         return (TokenType.SYMBOL, '!=')
       print("Unknown symbol " + cc + self.cc)
       exit(-1)
-      
+
     if cc in EQ_FOLLOWS and self.cc == '=':
       self.advance()
       return (TokenType.SYMBOL, cc + "=")
@@ -137,19 +142,124 @@ class Lexer:
     exit(-1)
 
 
+def isEof(token):
+  return token[0] == TokenType.EOF
+
+
 class Parser:
 
   def __init__(self, text):
     self.lexer = Lexer(text)
-    self.advance()
+    self.token = None
+    self.data = set()
 
   def advance(self):
     self.token = self.lexer.nextToken()
-    print(self.token[1])
+    print("  ; %s" % str(self.token))
     return self.token
 
   def parse(self):
+    self.advance()
+    return self.program()
+
+  def program(self):
+    # Read statements until eof
+    print("global main")
+    print("section .text")
+    print("main:")
+    while not isEof(self.token):
+      self.statement()
+    print("  extern exit")
+    print("  call exit\n")
+    if len(self.data):
+      print("section .data")
+      for entry in self.data:
+        print("  %s" % entry)
+
+  def statement(self):
+    if self.token[0] in (TokenType.INT_VAR, TokenType.FLOAT_VAR, TokenType.STR_VAR):
+      self.assignment()
+      return
+    if self.token[0] != TokenType.KEYWORD:
+      print("Unknown token " + self.token[1])
+      exit()
+    if self.token[1] == Keyword.IF:
+      self.parseIf()
+      return
+    if self.token[1] in (Keyword.PRINT, Keyword.PRINTLN):
+      self.parsePrint()
+      return
+    if self.token[1] == Keyword.FOR:
+      self.parseFor()
+      return
+    self.fail()
+
+  def fail(self):
+    print("Unknown token %s" % self.token)
+    exit(-1)
+
+  def assignment(self):
+    var = self.token[1]
+    self.addData("_%s: dq 0" % var)
+    varType = self.token[0]
+    self.advance()
+    if self.token[1] != '=':
+      print(";  bad?")
+      self.fail()
+      return
+    self.advance()
+    exprType = self.expr()
+    # TODO: check exprtype
+    if varType == TokenType.INT_VAR:
+      print("  mov [_%s], RAX" % var)
+      return
+    self.fail()
+
+  def parseIf(self):
+    self.fail()
     pass
+
+  def addData(self, entry):
+    self.data.add(entry)
+
+  def parsePrint(self):
+    is_println = self.token[1] == Keyword.PRINTLN
+    self.advance()
+    exprType = self.expr()
+    if exprType == VarType.INT:
+      if is_println:
+        self.addData("INT_NL_FMT: db '%d', 10")
+        print("  mov RCX, INT_NL_FMT")
+      else:
+        self.addData("INT_FMT: db '%d', 0")
+        print("  mov RCX, INT_FMT")
+      print("  mov RDX, RAX")
+      print("  sub RSP, 0x20")
+      print("  extern printf")
+      print("  call printf")
+      print("  add RSP, 0x20")
+      return
+    self.fail()
+
+  def parseFor(self):
+    self.fail()
+
+  def expr(self):
+    return self.atom()
+
+  def atom(self):
+    if self.token[0] == TokenType.INT_CONST:
+      const = self.token[1]
+      print("  mov RAX, %s" % const)
+      self.advance()
+      return VarType.INT
+    if self.token[0] == TokenType.INT_VAR:
+      self.addData("_%s: dq 0" % self.token[1])
+      print ("  mov RAX, [_%s]" % self.token[1])
+      self.advance()
+      return VarType.INT
+
+    self.fail()
 
 
 def main():
@@ -160,13 +270,8 @@ def main():
     println i + 1234
   endif
   '''
-  lex = Lexer(text)
-  token = lex.nextToken()
-  while token[0] != TokenType.EOF:
-    print(token[0], token[1])
-    token = lex.nextToken()
-  # p = Parser(text)
-  # p.parse()
+  p = Parser("i=123 println i")
+  p.parse()
 
 
 if __name__ == '__main__':
