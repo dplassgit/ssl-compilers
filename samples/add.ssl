@@ -1,0 +1,4 @@
+i=3
+j=4
+k=i+j
+println k

@@ -1,3 +1,4 @@
+import fileinput
 from enum import Enum
 
 # Token types
@@ -326,20 +327,9 @@ class Parser:
 
 
 def main():
-  text = '''
-  i = 0
-  # comment
-  if f == 345.678 then # more comments
-    println i + 1234
-  endif
-  '''
-  one = "i=3 print i println 345"
-  add = "i=3 j=4 k=i+j println k"
-  mult = "i=3 j=4 k=i*j println k"
-  div = "i=12345 j=34 k=i/j println k"
-  sub = "i=12345 j=34 k=j-1 println k"
-  cmp = "i=12345 j=34 println i!=j"
-  program = cmp
+  program=''
+  for line in fileinput.input():
+      program += line
   p = Parser(program)
   p.parse()
 

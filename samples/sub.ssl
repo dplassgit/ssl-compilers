@@ -1,0 +1,4 @@
+i=345
+j=567
+k=i-j
+println k

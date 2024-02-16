@@ -1,0 +1,4 @@
+i=33
+j=44
+k=i*j
+println k

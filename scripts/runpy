@@ -1,0 +1,3 @@
+BASE=`basename -s .ssl $1`
+python python/sslc.py < $1 > $BASE.asm && nasm -fwin64 $BASE.asm && gcc $BASE.obj -o $BASE.exe && ./$BASE.exe
+

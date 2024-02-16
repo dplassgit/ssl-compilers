@@ -1,0 +1,4 @@
+i=3000
+j=40
+k=i/j
+println k
