@@ -1,14 +1,17 @@
 # SSL Overview
 
+Note: Not everything is implemented.
+
+
 ## Variables
 
 All variables are one letter.
 
 Like in Fortran, variables `i` through `n` are integers (32-bits).
 
-Variables `a` through `h` are floats (64-bits)
+(Future expansion: variables `a` through `h` are 64-bit floats.)
 
-(Future expansion: variables `o` through `r` are booleans)
+(Future expansion: variables `o` through `r` are booleans.)
 
 Variables `s` through `z` are strings.
 
@@ -27,11 +30,11 @@ Use a hashtag (#) for a comment to end-of-line.
 
 ## Expressions
 
-Integer or floating point math: `+ - * / %`
+Integer or floating point math: `+ - * /`
 
 Comparisons: `== != < <= > >=`
 
-Strings: `+ [index]`
+(Future expansion: Strings: `+ [index]`)
 
 
 ## Statements
@@ -52,7 +55,7 @@ binary expression, e.g.,
 ### Control flow
 
 ```
-if [comparison] then
+if [comparison expr] then
   statements
 else
   statements
@@ -60,10 +63,12 @@ endif
 ```
 
 ```
-for [int variable] = expr to expr [step expr]
+for [int variable] = [int expr] to [int expr]
   statements
 endfor
 ```
+
+Future expansion: `for [int variable] = [int expr] to [int expr] step [int expr]`
 
 ### Output
 
