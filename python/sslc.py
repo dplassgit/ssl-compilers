@@ -2,14 +2,10 @@ from enum import Enum
 
 # Token types
 class TokenType(Enum):
-  INT_CONST = 1
-  INT_VAR = 2
-  FLOAT_CONST = 3
-  FLOAT_VAR = 4
-  STR_CONST = 5
-  STR_VAR = 6
-  KEYWORD = 7
-  SYMBOL = 8
+  CONST = 1
+  VAR = 2
+  KEYWORD = 3
+  SYMBOL = 4
   EOF = 999
 
 SYMBOLS=['+', '-', '*', '/', '%', '<', '>', '=', '[', ']']
@@ -45,30 +41,20 @@ class VarType(Enum):
   FLOAT = 2
   STR = 3
   BOOL = 4
-
-TOKEN_TYPE_TO_VARTYPE = {
-    TokenType.INT_CONST: VarType.INT,
-    TokenType.INT_VAR: VarType.INT,
-    TokenType.FLOAT_CONST: VarType.FLOAT,
-    TokenType.FLOAT_VAR: VarType.FLOAT,
-    TokenType.STR_CONST: VarType.STR,
-    TokenType.STR_VAR: VarType.STR
-   }
+  NONE = 0
 
 
 class Token:
-  def __init__(self, tokenType, value):
+  def __init__(self, tokenType, value, varType=VarType.NONE):
     self.tokenType = tokenType
     self.value = value
+    self.varType = varType
 
   def __str__(self):
     return "%s, %s" % (self.tokenType, self.value)
 
   def isEof(self):
     return self.tokenType == TokenType.EOF
-
-  def varType(self):
-    return TOKEN_TYPE_TO_VARTYPE[self.tokenType]
 
 class Lexer:
   def __init__(self, text):
@@ -120,9 +106,9 @@ class Lexer:
       while self.cc.isdigit():
         num += self.cc
         self.advance()
-      return Token(TokenType.FLOAT_CONST, float(num))
+      return Token(TokenType.CONST, float(num), VarType.FLOAT)
 
-    return Token(TokenType.INT_CONST, int(num))
+    return Token(TokenType.CONST, int(num), VarType.INT)
 
   def makeText(self):
     cc = self.cc
@@ -130,11 +116,11 @@ class Lexer:
     if not self.cc.isalpha():
       # next char is not alphanumeric: it's a variable
       if cc >= 'a' and cc <= 'h':
-        return Token(TokenType.FLOAT_VAR, cc)
+        return Token(TokenType.VAR, cc, VarType.FLOAT)
       elif cc >= 'i' and cc <= 'n':
-        return Token(TokenType.INT_VAR, cc)
+        return Token(TokenType.VAR, cc, VarType.INT)
       else:
-        return Token(TokenType.STR_VAR, cc)
+        return Token(TokenType.VAR, cc, VarType.STR)
     kw = cc
     while self.cc.isalpha():
       kw += self.cc
@@ -200,7 +186,7 @@ class Parser:
         print("  %s" % entry)
 
   def statement(self):
-    if self.token.tokenType in (TokenType.INT_VAR, TokenType.FLOAT_VAR, TokenType.STR_VAR):
+    if self.token.tokenType == TokenType.VAR:
       self.assignment()
       return
     if self.token.tokenType != TokenType.KEYWORD:
@@ -219,7 +205,7 @@ class Parser:
 
   def assignment(self):
     var = self.token.value
-    varType = self.token.varType()
+    varType = self.token.varType
     if varType == VarType.INT:
       self.addData("_%s: dd 0" % var)
     else:
@@ -271,16 +257,18 @@ class Parser:
     return self.atom()
 
   def atom(self):
-    if self.token.tokenType == TokenType.INT_CONST:
-      const = self.token.value
-      print("  mov EAX, %s" % const)
-      self.advance()
-      return VarType.INT
-    elif self.token.tokenType == TokenType.INT_VAR:
-      self.addData("_%s: dd 0" % self.token.value)
-      print ("  mov EAX, [_%s]" % self.token.value)
-      self.advance()
-      return VarType.INT
+    if self.token.tokenType == TokenType.CONST:
+      if self.token.varType == VarType.INT:
+        const = self.token.value
+        print("  mov EAX, %s" % const)
+        self.advance()
+        return VarType.INT
+    elif self.token.tokenType == TokenType.VAR:
+      if self.token.varType == VarType.INT:
+        self.addData("_%s: dd 0" % self.token.value)
+        print ("  mov EAX, [_%s]" % self.token.value)
+        self.advance()
+        return VarType.INT
     self.fail("atom")
 
 
