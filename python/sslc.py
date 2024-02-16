@@ -29,20 +29,6 @@ class Keyword(Enum):
   PRINTLN = 10
 
 
-KEYWORDS = {
-    'if': Keyword.IF,
-    'then':Keyword.THEN,
-    'else':Keyword.ELSE,
-    'endif':Keyword.ENDIF,
-    'for':Keyword.FOR,
-    'to':Keyword.TO,
-    'step':Keyword.STEP,
-    'endfor':Keyword.ENDFOR,
-    'print':Keyword.PRINT,
-    'println':Keyword.PRINTLN
-}
-
-
 class VarType(Enum):
   INT = 1
   FLOAT = 2
@@ -150,7 +136,7 @@ class Lexer:
       kw += self.cc
       self.advance()
     # look up the keyword
-    kw_enum = KEYWORDS.get(kw)
+    kw_enum = Keyword[kw.upper()]
     if not kw_enum:
       print("Unknown keyword " + kw)
       exit(-1)
@@ -306,15 +292,18 @@ class Parser:
 
     # now emit statements until ELSE or ENDIF
     self.statements([Keyword.ELSE, Keyword.ENDIF])
-    # Go to the end
-    print("  jmp endif_%d" % endifindex)
+    hasElse = self.token.isKeyword(Keyword.ELSE)
+    if hasElse:
+      # Go to the end
+      print("  jmp endif_%d" % endifindex)
 
     print("else_%d:" % elseindex)
-    if self.token.isKeyword(Keyword.ELSE):
+    if hasElse:
       self.advance()
       self.statements([Keyword.ENDIF])
     self.expect(Keyword.ENDIF)
-    print("endif_%d:" % endifindex)
+    if hasElse:
+      print("endif_%d:" % endifindex)
 
   def addData(self, entry):
     self.data.add(entry)
@@ -418,12 +407,10 @@ class Parser:
         return VarType.STR
     elif self.token.tokenType == TokenType.VAR:
       if self.token.varType == VarType.INT:
-        self.addData("_%s: dd 0" % self.token.value)
         print("  mov EAX, [_%s]" % self.token.value)
         self.advance()
         return VarType.INT
       elif self.token.varType == VarType.STR:
-        self.addData("_%s: dq 0" % self.token.value)
         print("  mov RAX, [_%s]" % self.token.value)
         self.advance()
         return VarType.STR
