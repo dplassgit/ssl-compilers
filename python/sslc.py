@@ -12,7 +12,7 @@ class TokenType(Enum):
   SYMBOL = 8
   EOF = 999
 
-SYMBOLS=['+', '-', '*', '/', '%', '<', '>', '=', '(', ')', '[', ']']
+SYMBOLS=['+', '-', '*', '/', '%', '<', '>', '=', '[', ']']
 EQ_FOLLOWS=['<', '>', '=']
 
 # Keyword types
@@ -62,7 +62,7 @@ class Token:
     self.value = value
 
   def __str__(self):
-    return str([self.tokenType, self.value])
+    return "%s, %s" % (self.tokenType, self.value)
 
   def isEof(self):
     return self.tokenType == TokenType.EOF
@@ -177,16 +177,19 @@ class Parser:
     print("  ; %s" % str(self.token))
     return self.token
 
-  def fail(self):
-    print("Unknown token %s" % str(self.token))
+  def fail(self, msg=None):
+    if msg:
+      print("%s at token %s" % (msg, str(self.token)))
+    else:
+      print("Unexpected token %s" % str(self.token))
     exit(-1)
 
   def parse(self):
-    self.advance()
-    # Read statements until eof
     print("global main")
     print("section .text")
     print("main:")
+    self.advance()
+    # Read statements until eof
     while not self.token.isEof():
       self.statement()
     print("  extern exit")
@@ -201,8 +204,8 @@ class Parser:
       self.assignment()
       return
     if self.token.tokenType != TokenType.KEYWORD:
-      print("Unknown token " + self.token[1])
-      exit()
+      self.fail()
+      return
     if self.token.value == Keyword.IF:
       self.parseIf()
       return
@@ -216,21 +219,22 @@ class Parser:
 
   def assignment(self):
     var = self.token.value
-    self.addData("_%s: dq 0" % var)
     varType = self.token.varType()
+    if varType == VarType.INT:
+      self.addData("_%s: dd 0" % var)
+    else:
+      self.fail()
+      return
     self.advance()
     if self.token.value != '=':
-      print(";  bad?")
       self.fail()
       return
     self.advance()
     exprType = self.expr()
-    # TODO: check exprtype
     if varType != exprType:
-      print("Cannot assign %s to %s", exprType, varType)
-      exit(-1)
+      self.fail("Cannot assign %s to %s" % (exprType, varType))
     if varType == VarType.INT:
-      print("  mov [_%s], RAX" % var)
+      print("  mov [_%s], EAX" % var)
       return
     self.fail()
 
@@ -252,16 +256,16 @@ class Parser:
       else:
         self.addData("INT_FMT: db '%d', 0")
         print("  mov RCX, INT_FMT")
-      print("  mov RDX, RAX")
+      print("  mov EDX, EAX")
       print("  sub RSP, 0x20")
       print("  extern printf")
       print("  call printf")
       print("  add RSP, 0x20")
       return
-    self.fail()
+    self.fail("Cannot print of type %s" % exprType)
 
   def parseFor(self):
-    self.fail()
+    self.fail("Cannot generate FOR yet")
 
   def expr(self):
     return self.atom()
@@ -269,21 +273,15 @@ class Parser:
   def atom(self):
     if self.token.tokenType == TokenType.INT_CONST:
       const = self.token.value
-      print("  mov RAX, %s" % const)
+      print("  mov EAX, %s" % const)
       self.advance()
       return VarType.INT
     elif self.token.tokenType == TokenType.INT_VAR:
-      self.addData("_%s: dq 0" % self.token.value)
-      print ("  mov RAX, [_%s]" % self.token.value)
+      self.addData("_%s: dd 0" % self.token.value)
+      print ("  mov EAX, [_%s]" % self.token.value)
       self.advance()
       return VarType.INT
-    elif self.token.tokenType == TokenType.SYMBOL and self.token.value == '(':
-      self.advance()
-      varType = self.expr()
-      if self.token.tokenType == TokenType.SYMBOL and self.token.value == ')':
-        self.advance()
-        return varType
-    self.fail()
+    self.fail("atom")
 
 
 def main():
@@ -294,7 +292,9 @@ def main():
     println i + 1234
   endif
   '''
-  p = Parser("i=(123) println (234)")
+  one = "i=3 print i println 345"
+  program = one
+  p = Parser(program)
   p.parse()
 
 
