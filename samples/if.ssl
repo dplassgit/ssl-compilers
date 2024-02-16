@@ -1,0 +1,17 @@
+i=3
+
+if i == 3 then
+  println 1
+  println 2
+else
+  println 3
+  println 4
+endif
+
+if i != 3 then
+  println 5
+  println 6
+else
+  println 7
+  println 8
+endif

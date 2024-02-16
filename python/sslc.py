@@ -57,6 +57,10 @@ class Token:
   def isEof(self):
     return self.tokenType == TokenType.EOF
 
+  def isKeyword(self, kw):
+    return self.tokenType == TokenType.KEYWORD and self.value == kw
+
+
 class Lexer:
   def __init__(self, text):
     self.text = text
@@ -174,6 +178,7 @@ class Parser:
     self.lexer = Lexer(text)
     self.token = None
     self.data = set()
+    self.labelindex = 0
 
   def advance(self):
     self.token = self.lexer.nextToken()
@@ -193,14 +198,21 @@ class Parser:
     print("main:")
     self.advance()
     # Read statements until eof
-    while not self.token.isEof():
-      self.statement()
+    self.statements()
     print("  extern exit")
     print("  call exit\n")
     if len(self.data):
       print("section .data")
       for entry in self.data:
         print("  %s" % entry)
+
+  def statements(self, kw_terminals=[]):
+    def stopit(tok):
+      if not len(kw_terminals):
+        return False
+      return tok.tokenType == TokenType.KEYWORD and tok.value in kw_terminals
+    while not self.token.isEof() and not stopit(self.token):
+      self.statement()
 
   def statement(self):
     if self.token.tokenType == TokenType.VAR:
@@ -241,9 +253,40 @@ class Parser:
       return
     self.fail()
 
+  def nextLabel(self):
+    self.labelindex += 1
+    return self.labelindex
+
+  def expect(self, kw):
+    if self.token.isKeyword(kw):
+      self.advance()
+      return
+    self.fail("Expected %s" % kw)
+
   def parseIf(self):
-    self.fail()
-    pass
+    self.advance()
+    exprType = self.expr()
+    if exprType != VarType.BOOL:
+      self.fail("IF must use bool expression")
+    self.expect(Keyword.THEN)
+
+    elseindex = self.nextLabel()
+    endifindex = self.nextLabel()
+    # if false, go to else
+    print("  cmp al, 0")
+    print("  jz else_%d" % elseindex)
+
+    # now emit statements until ELSE or ENDIF
+    self.statements([Keyword.ELSE, Keyword.ENDIF])
+    # Go to the end
+    print("  jmp endif_%d" % endifindex)
+
+    print("else_%d:" % elseindex)
+    if self.token.isKeyword(Keyword.ELSE):
+      self.advance()
+      self.statements([Keyword.ENDIF])
+    self.expect(Keyword.ENDIF)
+    print("endif_%d:" % endifindex)
 
   def addData(self, entry):
     self.data.add(entry)
