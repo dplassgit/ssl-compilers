@@ -357,7 +357,42 @@ class Parser:
     self.fail("Cannot print of type %s" % exprType)
 
   def parseFor(self):
-    self.fail("Cannot generate FOR yet")
+    self.expect(Keyword.FOR)
+
+    if self.token.tokenType != TokenType.VAR:
+      self.fail("Expected VAR")
+    if self.token.varType != VarType.INT:
+      self.fail("FOR variable must be integer")
+
+    var = self.token.value
+    self.addData("_%s: dd 0" % var)
+    self.advance()
+
+    if self.token.tokenType != TokenType.SYMBOL or self.token.value != "=":
+      self.fail("Expected =")
+    self.advance()
+    startType = self.expr()
+    if startType != VarType.INT:
+      self.fail("FOR start condition must be integer")
+    print("  mov [_%s], EAX" % var)
+
+    self.expect(Keyword.TO)
+
+    startfor = self.nextLabel()
+    endfor = self.nextLabel()
+
+    print("startfor_%d:" % startfor)
+    endType = self.expr()
+    if endType != VarType.INT:
+      self.fail("FOR end condition must be integer")
+    print("  cmp [_%s], EAX" % var)
+    print("  jge endfor_%d" % endfor)
+
+    self.statements([Keyword.ENDFOR])
+    print("  inc DWORD [_%s]" % var)
+    print("  jmp startfor_%d" % startfor)
+    print("endfor_%d:" % endfor)
+    self.expect(Keyword.ENDFOR)
 
   def expr(self):
     leftType = self.atom()
