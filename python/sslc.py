@@ -1,6 +1,7 @@
 import fileinput
 from enum import Enum
 
+
 # Token types
 class TokenType(Enum):
   CONST = 1
@@ -9,8 +10,10 @@ class TokenType(Enum):
   SYMBOL = 4
   EOF = 999
 
-SYMBOLS=['+', '-', '*', '/', '%', '<', '>', '=', '[', ']']
-EQ_FOLLOWS=['<', '>', '=']
+
+SYMBOLS = ['+', '-', '*', '/', '%', '<', '>', '=', '[', ']']
+EQ_FOLLOWS = ['<', '>', '=']
+
 
 # Keyword types
 class Keyword(Enum):
@@ -24,6 +27,8 @@ class Keyword(Enum):
   ENDFOR = 8
   PRINT = 9
   PRINTLN = 10
+
+
 KEYWORDS = {
     'if': Keyword.IF,
     'then':Keyword.THEN,
@@ -37,6 +42,7 @@ KEYWORDS = {
     'println':Keyword.PRINTLN
 }
 
+
 class VarType(Enum):
   INT = 1
   FLOAT = 2
@@ -46,6 +52,7 @@ class VarType(Enum):
 
 
 class Token:
+
   def __init__(self, tokenType, value, varType=VarType.NONE):
     self.tokenType = tokenType
     self.value = value
@@ -62,6 +69,7 @@ class Token:
 
 
 class Lexer:
+
   def __init__(self, text):
     self.text = text
     self.loc = 0
@@ -102,12 +110,12 @@ class Lexer:
 
   def makeString(self):
     self.advance()
-    str = ''
+    val = ''
     while self.cc != '"':
-      str += self.cc
+      val += self.cc
       self.advance()
     self.advance()
-    return Token(TokenType.CONST, str, VarType.STR)
+    return Token(TokenType.CONST, val, VarType.STR)
 
   def makeNumber(self):
     cc = self.cc
@@ -170,7 +178,7 @@ class Lexer:
 OPCODES = {
   ('+', VarType.INT): "add eax, ebx",
   ('*', VarType.INT): "imul eax, ebx",
-  ('/', VarType.INT): "xchg eax, ebx\n  cdq\n  idiv ebx", # eax=eax/ebx
+  ('/', VarType.INT): "xchg eax, ebx\n  cdq\n  idiv ebx",  # eax=eax/ebx
   ('-', VarType.INT): "xchg eax, ebx\n  sub eax, ebx"
 }
 
@@ -183,6 +191,7 @@ CMP_OPCODES = {
   ('>=', VarType.INT): "setge"
 }
 
+
 class Parser:
 
   def __init__(self, text):
@@ -190,6 +199,7 @@ class Parser:
     self.token = None
     self.data = set()
     self.labelindex = 0
+    self.stringTable = {}
 
   def advance(self):
     self.token = self.lexer.nextToken()
@@ -218,10 +228,12 @@ class Parser:
         print("  %s" % entry)
 
   def statements(self, kw_terminals=[]):
+
     def stopit(tok):
       if not len(kw_terminals):
         return False
       return tok.tokenType == TokenType.KEYWORD and tok.value in kw_terminals
+
     while not self.token.isEof() and not stopit(self.token):
       self.statement()
 
@@ -248,6 +260,8 @@ class Parser:
     varType = self.token.varType
     if varType == VarType.INT:
       self.addData("_%s: dd 0" % var)
+    elif varType == VarType.STR:
+      self.addData("_%s: dq 0" % var)
     else:
       self.fail()
       return
@@ -261,6 +275,9 @@ class Parser:
       self.fail("Cannot assign %s to %s" % (exprType, varType))
     if varType == VarType.INT:
       print("  mov [_%s], EAX" % var)
+      return
+    elif varType == VarType.STR:
+      print("  mov [_%s], RAX" % var)
       return
     self.fail()
 
@@ -306,6 +323,13 @@ class Parser:
     is_println = self.token.value == Keyword.PRINTLN
     self.advance()
     exprType = self.expr()
+
+    def println():
+      if is_println:
+        print("  extern putchar")
+        print("  mov rcx, 10")
+        print("  call putchar")
+
     if exprType == VarType.INT:
       if is_println:
         self.addData("INT_NL_FMT: db '%d', 10, 0")
@@ -329,10 +353,15 @@ class Parser:
       print("  sub RSP, 0x20")
       print("  extern printf")
       print("  call printf")
-      if is_println:
-        print("  extern putchar")
-        print("  mov rcx, 10")
-        print("  call putchar")
+      println()
+      print("  add RSP, 0x20")
+      return
+    elif exprType == VarType.STR:
+      print("  mov RCX, RAX")
+      print("  sub RSP, 0x20")
+      print("  extern printf")
+      print("  call printf")
+      println()
       print("  add RSP, 0x20")
       return
 
@@ -364,6 +393,16 @@ class Parser:
       return VarType.BOOL
     return leftType
 
+  def addStringConstant(self, const):
+    name = self.stringTable.get(const)
+    if name:
+      return name
+    # make a name
+    name = "CONST_%d" % self.nextLabel()
+    self.stringTable[const] = name
+    self.addData('%s: db "%s", 0' % (name, const))
+    return name
+
   def atom(self):
     if self.token.tokenType == TokenType.CONST:
       if self.token.varType == VarType.INT:
@@ -371,17 +410,28 @@ class Parser:
         print("  mov EAX, %s" % const)
         self.advance()
         return VarType.INT
+      elif self.token.varType == VarType.STR:
+        const = self.token.value
+        name = self.addStringConstant(const)
+        print("  mov RAX, %s" % name)
+        self.advance()
+        return VarType.STR
     elif self.token.tokenType == TokenType.VAR:
       if self.token.varType == VarType.INT:
         self.addData("_%s: dd 0" % self.token.value)
-        print ("  mov EAX, [_%s]" % self.token.value)
+        print("  mov EAX, [_%s]" % self.token.value)
         self.advance()
         return VarType.INT
+      elif self.token.varType == VarType.STR:
+        self.addData("_%s: dq 0" % self.token.value)
+        print("  mov RAX, [_%s]" % self.token.value)
+        self.advance()
+        return VarType.STR
     self.fail("Cannot parse atom")
 
 
 def main():
-  program=''
+  program = ''
   for line in fileinput.input():
       program += line
   p = Parser(program)
