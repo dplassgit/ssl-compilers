@@ -151,6 +151,22 @@ class Lexer:
     exit(-1)
 
 
+OPCODES = {
+  ('+', VarType.INT): "add eax, ebx",
+  ('*', VarType.INT): "imul eax, ebx",
+  ('/', VarType.INT): "xchg eax, ebx\n  cdq\n  idiv ebx", # eax=eax/ebx
+  ('-', VarType.INT): "xchg eax, ebx\n  sub eax, ebx"
+}
+
+CMP_OPCODES = {
+  ('==', VarType.INT): "setz",
+  ('!=', VarType.INT): "setnz",
+  ('<', VarType.INT): "setl",
+  ('>', VarType.INT): "setg",
+  ('<=', VarType.INT): "setle",
+  ('>=', VarType.INT): "setge"
+}
+
 class Parser:
 
   def __init__(self, text):
@@ -237,7 +253,7 @@ class Parser:
     exprType = self.expr()
     if exprType == VarType.INT:
       if is_println:
-        self.addData("INT_NL_FMT: db '%d', 10")
+        self.addData("INT_NL_FMT: db '%d', 10, 0")
         print("  mov RCX, INT_NL_FMT")
       else:
         self.addData("INT_FMT: db '%d', 0")
@@ -248,13 +264,50 @@ class Parser:
       print("  call printf")
       print("  add RSP, 0x20")
       return
+    elif exprType == VarType.BOOL:
+      self.addData("TRUE: db 'true', 0")
+      self.addData("FALSE: db 'false', 0")
+      print("  cmp al, 1")
+      print("  mov RCX, FALSE")
+      print("  mov RDX, TRUE")
+      print("  cmovz RCX, RDX")
+      print("  sub RSP, 0x20")
+      print("  extern printf")
+      print("  call printf")
+      if is_println:
+        print("  extern putchar")
+        print("  mov rcx, 10")
+        print("  call putchar")
+      print("  add RSP, 0x20")
+      return
+
     self.fail("Cannot print of type %s" % exprType)
 
   def parseFor(self):
     self.fail("Cannot generate FOR yet")
 
   def expr(self):
-    return self.atom()
+    leftType = self.atom()
+    if self.token.tokenType == TokenType.SYMBOL:
+      print("  push rax")
+      op = self.token.value
+      self.advance()
+      rightType = self.atom()
+      if leftType != rightType:
+        self.fail("Cannot apply %s to %s" % (leftType, rightType))
+      print("  pop rbx")  # rbx was old left
+      opcode = OPCODES.get((op, leftType))
+      if opcode:
+        print("  %s" % opcode)
+        return leftType
+      opcode = CMP_OPCODES.get((op, leftType))
+      if not opcode:
+        self.fail("Unknown opcode for op %s" % op)
+      # Not sure why not eax, ebx, but that's what v0.d does
+      print("  cmp ebx, eax")
+      print("  %s al" % opcode)
+      return VarType.BOOL
+    return leftType
 
   def atom(self):
     if self.token.tokenType == TokenType.CONST:
@@ -281,7 +334,12 @@ def main():
   endif
   '''
   one = "i=3 print i println 345"
-  program = one
+  add = "i=3 j=4 k=i+j println k"
+  mult = "i=3 j=4 k=i*j println k"
+  div = "i=12345 j=34 k=i/j println k"
+  sub = "i=12345 j=34 k=j-1 println k"
+  cmp = "i=12345 j=34 println i!=j"
+  program = cmp
   p = Parser(program)
   p.parse()
 
