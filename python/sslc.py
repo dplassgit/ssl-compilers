@@ -95,8 +95,19 @@ class Lexer:
       return self.makeNumber()
     elif self.cc.isalpha():
       return self.makeText()
-    # TODO: deal with string constants
+    elif self.cc == '"':
+      # TODO: deal with string constants
+      return self.makeString()
     return self.makeSymbol()
+
+  def makeString(self):
+    self.advance()
+    str = ''
+    while self.cc != '"':
+      str += self.cc
+      self.advance()
+    self.advance()
+    return Token(TokenType.CONST, str, VarType.STR)
 
   def makeNumber(self):
     cc = self.cc
@@ -366,7 +377,7 @@ class Parser:
         print ("  mov EAX, [_%s]" % self.token.value)
         self.advance()
         return VarType.INT
-    self.fail("atom")
+    self.fail("Cannot parse atom")
 
 
 def main():
