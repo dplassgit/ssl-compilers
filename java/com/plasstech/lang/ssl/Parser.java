@@ -34,6 +34,12 @@ public class Parser {
     this.lexer = new Lexer(text);
   }
 
+  private static int counter = 0;
+
+  private int nextInt() {
+    return counter++;
+  }
+
   private Token advance() {
     token = lexer.nextToken();
     return token;
@@ -44,7 +50,7 @@ public class Parser {
     emit0("section .text");
     emit0("main:");
     advance();
-    statements(ImmutableList.of(TokenType.EOF));
+    statements(ImmutableList.of());
     emit("extern exit");
     emit("call exit\n");
     if (!data.isEmpty()) {
@@ -57,10 +63,19 @@ public class Parser {
     return ImmutableList.copyOf(code);
   }
 
-  private void statements(ImmutableList<TokenType> terminals) {
-    while (!terminals.contains(token.type)) {
+  private void statements(ImmutableList<Keyword> terminals) {
+    while (token.type != TokenType.EOF
+        && !matches(terminals)) {
       statement();
     }
+  }
+
+  private boolean matches(ImmutableList<Keyword> terminals) {
+    if (token.type != TokenType.KEYWORD || terminals.isEmpty()) {
+      return false;
+    }
+    KeywordToken kt = (KeywordToken) token;
+    return terminals.stream().anyMatch(kw -> kt.keyword() == kw);
   }
 
   private void statement() {
@@ -70,6 +85,10 @@ public class Parser {
     }
     if (isKeyword(Keyword.PRINTLN) || isKeyword(Keyword.PRINT)) {
       parsePrint();
+      return;
+    }
+    if (isKeyword(Keyword.IF)) {
+      parseIf();
       return;
     }
     fail("Cannot parse " + token.stringValue);
@@ -124,13 +143,38 @@ public class Parser {
     fail("Cannot print " + exprType);
   }
 
+  private void parseIf() {
+    expect(Keyword.IF);
+    VarType exprType = expr();
+    checkTypes(exprType, VarType.BOOL);
+    expect(Keyword.THEN);
+    int elseIndex = nextInt();
+    int endIfIndex = nextInt();
+    emit("cmp al, 0");
+    emit("jz else_" + elseIndex);
+    statements(ImmutableList.of(Keyword.ELSE, Keyword.ENDIF));
+    boolean hasElse = isKeyword(Keyword.ELSE);
+    if (hasElse) {
+      emit("jmp endif_" + endIfIndex);
+    }
+    emitLabel("else_" + elseIndex);
+    if (hasElse) {
+      advance();
+      statements(ImmutableList.of(Keyword.ENDIF));
+    }
+    expect(Keyword.ENDIF);
+    if (hasElse) {
+      emitLabel("endif_" + endIfIndex);
+    }
+  }
+
   private VarType expr() {
-    var leftType = atom();
+    VarType leftType = atom();
     if (token.type == TokenType.SYMBOL) {
       emit("push rax");
-      Symbol symbol = getSymbol();
+      Symbol symbol = currentSymbol();
       advance();
-      var rightType = atom();
+      VarType rightType = atom();
       checkTypes(leftType, rightType);
       emit("pop rbx");
       return emitOpCodeCode(symbol, leftType);
@@ -155,7 +199,7 @@ public class Parser {
   }
 
   private VarType atom() {
-    var tokenType = tokenType();
+    var tokenType = currentTokenType();
     if (token.type == TokenType.CONST) {
       switch (tokenType) {
         case INT:
@@ -198,6 +242,18 @@ public class Parser {
     advance();
   }
 
+  private void expect(Keyword expected) {
+    if (token.type != TokenType.KEYWORD) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+      return;
+    }
+    KeywordToken kw = (KeywordToken) token;
+    if (kw.keyword() != expected) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+    }
+    advance();
+  }
+
   private void checkTypes(VarType leftType, VarType rightType) {
     if (rightType != leftType) {
       fail("Cannot apply " + rightType + " to " + leftType);
@@ -212,6 +268,10 @@ public class Parser {
     emit0("  " + line);
   }
 
+  private void emitLabel(String label) {
+    emit0(label + ":");
+  }
+
   private void emit0(String line) {
     code.add(line);
   }
@@ -220,12 +280,12 @@ public class Parser {
     throw new IllegalStateException(message);
   }
 
-  private Symbol getSymbol() {
+  private Symbol currentSymbol() {
     SymbolToken st = (SymbolToken) token;
     return st.symbol();
   }
 
-  private VarType tokenType() {
+  private VarType currentTokenType() {
     TypedToken tt = (TypedToken) token;
     return tt.varType();
   }
