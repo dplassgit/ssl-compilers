@@ -1,0 +1,4 @@
+BASE=`basename -s .ssl $1`
+rm -f $BASE.exe
+java -classpath "bin;lib/*" com.plasstech.lang.ssl.Sslc < $1 > $BASE.asm && nasm -fwin64 $BASE.asm && gcc $BASE.obj -o $BASE.exe && ./$BASE.exe
+
