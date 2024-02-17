@@ -37,17 +37,6 @@ public class Parser {
     this.lexer = new Lexer(text);
   }
 
-  private static int counter = 0;
-
-  private int nextInt() {
-    return counter++;
-  }
-
-  private Token advance() {
-    token = lexer.nextToken();
-    return token;
-  }
-
   public ImmutableList<String> parse() {
     emit0("global main");
     emit0("section .text");
@@ -64,6 +53,21 @@ public class Parser {
     }
 
     return ImmutableList.copyOf(code);
+  }
+
+  private static int counter = 0;
+
+  private int nextInt() {
+    return counter++;
+  }
+
+  private String nextLabel(String prefix) {
+    return String.format("%s_%d", prefix, nextInt());
+  }
+
+  private Token advance() {
+    token = lexer.nextToken();
+    return token;
   }
 
   private void statements(ImmutableList<Keyword> terminals) {
@@ -94,7 +98,53 @@ public class Parser {
       parseIf();
       return;
     }
+    if (isKeyword(Keyword.FOR)) {
+      parseFor();
+      return;
+    }
     fail("Cannot parse " + token.stringValue);
+  }
+
+  private void parseFor() {
+    expect(Keyword.FOR);
+    if (token.type != TokenType.VAR) {
+      fail("Expected VAR");
+      return;
+    }
+    if (currentTokenType() != VarType.INT) {
+      fail("FOR variable must be integer");
+      return;
+    }
+    VarToken vt = (VarToken) token;
+    String varName = vt.name();
+    addData(String.format("_%s: dd 0", varName));
+    advance();
+
+    expect(Symbol.EQ);
+    VarType startType = expr();
+    if (startType != VarType.INT) {
+      fail("FOR start condition must be integer");
+      return;
+    }
+    emit("mov [_%s], EAX", varName);
+    expect(Keyword.TO);
+
+    String startForLabel = nextLabel("startFor");
+    String endForLabel = nextLabel("endFor");
+    emitLabel(startForLabel);
+    VarType endType = expr();
+    if (endType != VarType.INT) {
+      fail("FOR end condition must be integer");
+      return;
+    }
+    emit("cmp [_%s], EAX", varName);
+    emit("jge %s", endForLabel);
+
+    statements(ImmutableList.of(Keyword.ENDFOR));
+    emit("inc DWORD [_%s]", varName);
+    emit("jmp %s", startForLabel);
+    emitLabel(endForLabel);
+    expect(Keyword.ENDFOR);
   }
 
   private void assignment() {
@@ -111,11 +161,11 @@ public class Parser {
 
     switch (vt.varType()) {
       case INT:
-        emit(String.format("mov [_%s], EAX", varname));
+        emit("mov [_%s], EAX", varname);
         return;
 
       case STR:
-        emit(String.format("mov [_%s], RAX", varname));
+        emit("mov [_%s], RAX", varname);
         return;
 
       default:
@@ -133,18 +183,10 @@ public class Parser {
         addData("INT_FMT: db '%d', 0");
         emit("mov RCX, INT_FMT");
         emit("mov EDX, EAX");
-        emit("sub RSP, 0x20");
-        emit("extern printf");
-        emit("call printf");
-        emit("add RSP, 0x20");
         break;
 
       case STR:
         emit("mov RCX, RAX");
-        emit("sub RSP, 0x20");
-        emit("extern printf");
-        emit("call printf");
-        emit("add RSP, 0x20");
         break;
 
       case BOOL:
@@ -154,21 +196,21 @@ public class Parser {
         emit("mov RCX, FALSE");
         emit("mov RDX, TRUE");
         emit("cmovz RCX, RDX");
-        emit("sub RSP, 0x20");
-        emit("extern printf");
-        emit("call printf");
-        emit("add RSP, 0x20");
         break;
 
       default:
         fail("Cannot print " + exprType);
         break;
     }
+    emit("sub RSP, 0x20");
+    emit("extern printf");
+    emit("call printf");
     if (isPrintln) {
       emit("extern putchar");
       emit("mov rcx, 10");
       emit("call putchar");
     }
+    emit("add RSP, 0x20");
   }
 
   private void parseIf() {
@@ -176,23 +218,23 @@ public class Parser {
     VarType exprType = expr();
     checkTypes(exprType, VarType.BOOL);
     expect(Keyword.THEN);
-    int elseIndex = nextInt();
-    int endIfIndex = nextInt();
+    String elseLabel = nextLabel("else");
+    String endIfLabel = nextLabel("endIf");
     emit("cmp al, 0");
-    emit("jz else_" + elseIndex);
+    emit("jz " + elseLabel);
     statements(ImmutableList.of(Keyword.ELSE, Keyword.ENDIF));
     boolean hasElse = isKeyword(Keyword.ELSE);
     if (hasElse) {
-      emit("jmp endif_" + endIfIndex);
+      emit("jmp " + endIfLabel);
     }
-    emitLabel("else_" + elseIndex);
+    emitLabel(elseLabel);
     if (hasElse) {
       advance();
       statements(ImmutableList.of(Keyword.ENDIF));
     }
     expect(Keyword.ENDIF);
     if (hasElse) {
-      emitLabel("endif_" + endIfIndex);
+      emitLabel(endIfLabel);
     }
   }
 
@@ -245,15 +287,16 @@ public class Parser {
         default:
           break;
       }
-    } else if (token.type == TokenType.VAR) {
+    }
+    if (token.type == TokenType.VAR) {
       switch (tokenType) {
         case INT:
-          emit(String.format("mov EAX, [_%s]", token.stringValue));
+          emit("mov EAX, [_%s]", token.stringValue);
           advance();
           return tokenType;
 
         case STR:
-          emit(String.format("mov RAX, [_%s]", token.stringValue));
+          emit("mov RAX, [_%s]", token.stringValue);
           advance();
           return tokenType;
 
@@ -270,7 +313,7 @@ public class Parser {
     if (name != null) {
       return name;
     }
-    name = "CONST_" + nextInt();
+    name = nextLabel("CONST");
     stringTable.put(value, name);
     addData(String.format("%s: db \"%s\", 0", name, value));
     return name;
@@ -308,6 +351,10 @@ public class Parser {
 
   private void addData(String entry) {
     data.add(entry);
+  }
+
+  private void emit(String format, Object... params) {
+    emit(String.format(format, params));
   }
 
   private void emit(String line) {
