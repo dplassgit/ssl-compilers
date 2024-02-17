@@ -14,3 +14,6 @@
 *.exe
 *.asm
 /bin/
+bazel-bin/
+bazel-out/
+bazel-ssl-compilers/
