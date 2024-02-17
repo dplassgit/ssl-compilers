@@ -3,11 +3,28 @@ package com.plasstech.lang.ssl;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class Parser {
+  private static final Map<Symbol, String> ARITH_OPCODES =
+      ImmutableMap.of(
+          Symbol.PLUS, "add eax, ebx",
+          Symbol.MULT, "imul eax, ebx",
+          Symbol.DIV, "xchg eax, ebx\n  cdq\n  idiv ebx",
+          Symbol.MINUS, "xchg eax, ebx\n  sub eax, ebx");
+  private static final Map<Symbol, String> CMP_OPCODES =
+      ImmutableMap.of(
+          Symbol.EQEQ, "setz",
+          Symbol.NEQ, "setnz",
+          Symbol.LT, "setl",
+          Symbol.GT, "setg",
+          Symbol.GEQ, "setge",
+          Symbol.LEQ, "setle");
+
   private final Lexer lexer;
   private final List<String> code = new LinkedList<>();
   private Token token;
@@ -15,6 +32,11 @@ public class Parser {
 
   public Parser(String text) {
     this.lexer = new Lexer(text);
+  }
+
+  private Token advance() {
+    token = lexer.nextToken();
+    return token;
   }
 
   public ImmutableList<String> parse() {
@@ -63,10 +85,7 @@ public class Parser {
     expect(Symbol.EQ);
 
     VarType exprType = expr();
-    if (exprType != vt.varType()) {
-      fail("Cannot assign " + exprType + " to " + vt.varType());
-      return;
-    }
+    checkTypes(vt.varType(), exprType);
 
     switch (vt.varType()) {
       case INT:
@@ -81,18 +100,6 @@ public class Parser {
         break;
     }
     fail("Cannot parse assignment");
-  }
-
-  private void expect(Symbol expected) {
-    if (!(token instanceof SymbolToken)) {
-      fail("Expected " + expected + ", was " + token.stringValue);
-      return;
-    }
-    SymbolToken st = (SymbolToken) token;
-    if (st.symbol() != expected) {
-      fail("Expected " + expected + ", was " + token.stringValue);
-    }
-    advance();
   }
 
   private void parsePrint() {
@@ -117,13 +124,34 @@ public class Parser {
     fail("Cannot print " + exprType);
   }
 
-  private void addData(String entry) {
-    data.add(entry);
-  }
-
   private VarType expr() {
     var leftType = atom();
+    if (token.type == TokenType.SYMBOL) {
+      emit("push rax");
+      Symbol symbol = getSymbol();
+      advance();
+      var rightType = atom();
+      checkTypes(leftType, rightType);
+      emit("pop rbx");
+      return emitOpCodeCode(symbol, leftType);
+    }
     return leftType;
+  }
+
+  private VarType emitOpCodeCode(Symbol symbol, VarType type) {
+    String arith = ARITH_OPCODES.get(symbol);
+    if (arith != null) {
+      emit(arith);
+      return type;
+    }
+    String cmp = CMP_OPCODES.get(symbol);
+    if (cmp != null) {
+      emit("cmp ebx, eax");
+      emit(cmp + " al");
+      return VarType.BOOL;
+    }
+    fail("Cannot emit opcode for " + symbol.toString());
+    return VarType.NONE;
   }
 
   private VarType atom() {
@@ -158,6 +186,28 @@ public class Parser {
     return VarType.NONE;
   }
 
+  private void expect(Symbol expected) {
+    if (token.type != TokenType.SYMBOL) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+      return;
+    }
+    SymbolToken st = (SymbolToken) token;
+    if (st.symbol() != expected) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+    }
+    advance();
+  }
+
+  private void checkTypes(VarType leftType, VarType rightType) {
+    if (rightType != leftType) {
+      fail("Cannot apply " + rightType + " to " + leftType);
+    }
+  }
+
+  private void addData(String entry) {
+    data.add(entry);
+  }
+
   private void emit(String line) {
     emit0("  " + line);
   }
@@ -168,6 +218,11 @@ public class Parser {
 
   private void fail(String message) {
     throw new IllegalStateException(message);
+  }
+
+  private Symbol getSymbol() {
+    SymbolToken st = (SymbolToken) token;
+    return st.symbol();
   }
 
   private VarType tokenType() {
@@ -181,10 +236,5 @@ public class Parser {
     }
     KeywordToken kt = (KeywordToken) token;
     return kt.keyword() == kw;
-  }
-
-  private Token advance() {
-    token = lexer.nextToken();
-    return token;
   }
 }

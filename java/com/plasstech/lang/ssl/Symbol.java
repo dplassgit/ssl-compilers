@@ -9,9 +9,9 @@ public enum Symbol {
   EQ("="),
   NEQ("!="),
   LEQ("<="),
-  LE("<"),
+  LT("<"),
   GEQ(">="),
-  GE(">");
+  GT(">");
 
   public final String value;
 

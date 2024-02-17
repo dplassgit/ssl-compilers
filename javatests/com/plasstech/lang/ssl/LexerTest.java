@@ -124,6 +124,7 @@ public class LexerTest {
     Token token = lexer.nextToken();
     while (token.type != TokenType.EOF) {
       assertThat(token.type).isEqualTo(TokenType.SYMBOL);
+      System.out.print(token.stringValue + " ");
       token = lexer.nextToken();
     }
   }
@@ -140,7 +141,6 @@ public class LexerTest {
     Lexer lexer = new Lexer(FACT);
     Token token = lexer.nextToken();
     while (token.type != TokenType.EOF) {
-      System.out.print(token.stringValue + " ");
       token = lexer.nextToken();
     }
   }
