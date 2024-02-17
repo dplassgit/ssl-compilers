@@ -8,5 +8,4 @@ public class Token {
     this.type = type;
     this.stringValue = value;
   }
-
 }
