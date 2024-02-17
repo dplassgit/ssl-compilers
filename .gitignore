@@ -13,3 +13,4 @@
 # Executables
 *.exe
 *.asm
+/bin/

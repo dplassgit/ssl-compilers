@@ -71,7 +71,6 @@ class Lexer:
     self.loc = self.loc + 1
     return self.cc
 
-  # Token is a tuple: (type, value)
   def nextToken(self):
     # skip unwanted whitespace
     while True:
@@ -90,7 +89,6 @@ class Lexer:
     elif self.cc.isalpha():
       return self.makeText()
     elif self.cc == '"':
-      # TODO: deal with string constants
       return self.makeString()
     return self.makeSymbol()
 
