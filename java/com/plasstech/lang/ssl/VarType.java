@@ -1,6 +1,11 @@
 package com.plasstech.lang.ssl;
 
 public enum VarType {
-  INT, STR, FLOAT, NONE
+  INT("dd"), STR("dq"), FLOAT("dq"), NONE("");
 
+  public final String dataSize;
+
+  private VarType(String size) {
+    this.dataSize = size;
+  }
 }

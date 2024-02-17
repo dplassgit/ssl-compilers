@@ -22,7 +22,7 @@ public class Parser {
     emit0("section .text");
     emit0("main:");
     advance();
-    parseStatements(ImmutableList.of(TokenType.EOF));
+    statements(ImmutableList.of(TokenType.EOF));
     emit("extern exit");
     emit("call exit\n");
     if (!data.isEmpty()) {
@@ -35,17 +35,64 @@ public class Parser {
     return ImmutableList.copyOf(code);
   }
 
-  private void parseStatements(ImmutableList<TokenType> terminals) {
+  private void statements(ImmutableList<TokenType> terminals) {
     while (!terminals.contains(token.type)) {
-      parseStatement();
+      statement();
     }
   }
 
-  private void parseStatement() {
+  private void statement() {
+    if (token.type == TokenType.VAR) {
+      assignment();
+      return;
+    }
     if (isKeyword(Keyword.PRINTLN) || isKeyword(Keyword.PRINT)) {
       parsePrint();
       return;
     }
+    fail("Cannot parse " + token.stringValue);
+  }
+
+  private void assignment() {
+    VarToken vt = (VarToken) token;
+    advance();
+
+    String varname = vt.name();
+    addData(String.format("_%s: %s 0", varname, vt.varType().dataSize));
+
+    expect(Symbol.EQ);
+
+    VarType exprType = expr();
+    if (exprType != vt.varType()) {
+      fail("Cannot assign " + exprType + " to " + vt.varType());
+      return;
+    }
+
+    switch (vt.varType()) {
+      case INT:
+        emit(String.format("mov [_%s], EAX", varname));
+        return;
+
+      case STR:
+        emit(String.format("mov [_%s], RAX", varname));
+        return;
+
+      default:
+        break;
+    }
+    fail("Cannot parse assignment");
+  }
+
+  private void expect(Symbol expected) {
+    if (!(token instanceof SymbolToken)) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+      return;
+    }
+    SymbolToken st = (SymbolToken) token;
+    if (st.symbol() != expected) {
+      fail("Expected " + expected + ", was " + token.stringValue);
+    }
+    advance();
   }
 
   private void parsePrint() {
@@ -67,6 +114,7 @@ public class Parser {
       emit("add RSP, 0x20");
       return;
     }
+    fail("Cannot print " + exprType);
   }
 
   private void addData(String entry) {
@@ -79,11 +127,32 @@ public class Parser {
   }
 
   private VarType atom() {
+    var tokenType = tokenType();
     if (token.type == TokenType.CONST) {
-      var tokenType = tokenType();
-      emit("mov EAX, " + token.stringValue);
-      advance();
-      return tokenType;
+      switch (tokenType) {
+        case INT:
+          emit("mov EAX, " + token.stringValue);
+          advance();
+          return tokenType;
+
+        default:
+          break;
+      }
+    } else if (token.type == TokenType.VAR) {
+      switch (tokenType) {
+        case INT:
+          emit(String.format("mov EAX, [_%s]", token.stringValue));
+          advance();
+          return tokenType;
+
+        case STR:
+          emit(String.format("mov RAX, [_%s]", token.stringValue));
+          advance();
+          return tokenType;
+
+        default:
+          break;
+      }
     }
     fail("Cannot parse " + token.stringValue);
     return VarType.NONE;
