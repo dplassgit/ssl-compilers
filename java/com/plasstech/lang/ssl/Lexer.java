@@ -105,14 +105,19 @@ public class Lexer {
         return new VarToken(var, VarType.STR);
       }
     }
-    var keyword = String.valueOf(first);
-    while (Character.isAlphabetic(cc)) {
-      keyword += cc;
-      advance();
+    String keyword = String.valueOf(first);
+    try {
+      while (Character.isAlphabetic(cc)) {
+        keyword += cc;
+        advance();
+      }
+      // look up the keyword
+      var kw = Keyword.valueOf(keyword.toUpperCase());
+      return new KeywordToken(kw);
+    } catch (IllegalArgumentException e) {
+      fail("Unknown keyword " + keyword);
+      return null;
     }
-    // look up the keyword
-    var kw = Keyword.valueOf(keyword.toUpperCase());
-    return new KeywordToken(kw);
   }
 
   private Token makeNumber() {

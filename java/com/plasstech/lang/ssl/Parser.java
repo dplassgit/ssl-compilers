@@ -1,5 +1,6 @@
 package com.plasstech.lang.ssl;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,8 @@ public class Parser {
   private final List<String> code = new LinkedList<>();
   private Token token;
   private Set<String> data = new HashSet<>();
+  // Maps from value to name
+  private Map<String, String> stringTable = new HashMap<>();
 
   public Parser(String text) {
     this.lexer = new Lexer(text);
@@ -125,22 +128,47 @@ public class Parser {
     var isPrintln = isKeyword(Keyword.PRINTLN);
     advance();
     var exprType = expr();
-    if (exprType == VarType.INT) {
-      if (isPrintln) {
-        addData("INT_NL_FMT: db '%d', 10, 0");
-        emit("mov RCX, INT_NL_FMT");
-      } else {
+    switch (exprType) {
+      case INT:
         addData("INT_FMT: db '%d', 0");
         emit("mov RCX, INT_FMT");
-      }
-      emit("mov EDX, EAX");
-      emit("sub RSP, 0x20");
-      emit("extern printf");
-      emit("call printf");
-      emit("add RSP, 0x20");
-      return;
+        emit("mov EDX, EAX");
+        emit("sub RSP, 0x20");
+        emit("extern printf");
+        emit("call printf");
+        emit("add RSP, 0x20");
+        break;
+
+      case STR:
+        emit("mov RCX, RAX");
+        emit("sub RSP, 0x20");
+        emit("extern printf");
+        emit("call printf");
+        emit("add RSP, 0x20");
+        break;
+
+      case BOOL:
+        addData("TRUE: db 'true', 0");
+        addData("FALSE: db 'false', 0");
+        emit("cmp al, 1");
+        emit("mov RCX, FALSE");
+        emit("mov RDX, TRUE");
+        emit("cmovz RCX, RDX");
+        emit("sub RSP, 0x20");
+        emit("extern printf");
+        emit("call printf");
+        emit("add RSP, 0x20");
+        break;
+
+      default:
+        fail("Cannot print " + exprType);
+        break;
     }
-    fail("Cannot print " + exprType);
+    if (isPrintln) {
+      emit("extern putchar");
+      emit("mov rcx, 10");
+      emit("call putchar");
+    }
   }
 
   private void parseIf() {
@@ -207,6 +235,13 @@ public class Parser {
           advance();
           return tokenType;
 
+        case STR:
+          var value = token.stringValue;
+          var name = addStringConstant(value);
+          emit("mov RAX, " + name);
+          advance();
+          return tokenType;
+
         default:
           break;
       }
@@ -228,6 +263,17 @@ public class Parser {
     }
     fail("Cannot parse " + token.stringValue);
     return VarType.NONE;
+  }
+
+  private Object addStringConstant(String value) {
+    String name = stringTable.get(value);
+    if (name != null) {
+      return name;
+    }
+    name = "CONST_" + nextInt();
+    stringTable.put(value, name);
+    addData(String.format("%s: db \"%s\", 0", name, value));
+    return name;
   }
 
   private void expect(Symbol expected) {
