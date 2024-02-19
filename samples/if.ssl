@@ -13,3 +13,7 @@ else
   println 7
   println 8
 endif
+
+if i > 0 then 
+  println i
+endif
