@@ -1,7 +1,17 @@
 module(name = "sslcompilers")
 
 bazel_dep(name = "rules_go", version = "0.46.0")
-bazel_dep(name = "gazelle", version = "0.35.0")
+bazel_dep(name = "rules_jvm_external", version = "5.3")
 
-
-
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    name = "sslcompilers_maven",
+    artifacts = [
+        "com.google.guava:guava:33.0.0-jre",
+    ],
+    fetch_sources = True,
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+)
+use_repo(maven, "sslcompilers_maven")
