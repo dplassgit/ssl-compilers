@@ -163,16 +163,33 @@ OPCODES = {
   ('+', VarType.INT): "add eax, ebx",
   ('*', VarType.INT): "imul eax, ebx",
   ('/', VarType.INT): "xchg eax, ebx\n  cdq\n  idiv ebx",  # eax=eax/ebx
-  ('-', VarType.INT): "xchg eax, ebx\n  sub eax, ebx"
+  ('-', VarType.INT): "xchg eax, ebx\n  sub eax, ebx",
+
+  ('+', VarType.FLOAT): "addsd xmm0, xmm1",
+  ('-', VarType.FLOAT): "subsd xmm1, xmm0\n  movsd xmm0, xmm1",
+  ('*', VarType.FLOAT): "mulsd xmm0, xmm1",
+  ('/', VarType.FLOAT): "divsd xmm1, xmm0\n  movsd xmm0, xmm1",
 }
 
-CMP_OPCODES = {
+CMP_OPCODE = {
+  VarType.INT: "cmp ebx, eax",
+  VarType.FLOAT: "comisd XMM1, XMM0",
+}
+
+SETx_OPCODE = {
   ('==', VarType.INT): "setz",
   ('!=', VarType.INT): "setnz",
   ('<', VarType.INT): "setl",
   ('>', VarType.INT): "setg",
   ('<=', VarType.INT): "setle",
-  ('>=', VarType.INT): "setge"
+  ('>=', VarType.INT): "setge",
+
+  ('==', VarType.FLOAT): "setz",
+  ('!=', VarType.FLOAT): "setnz",
+  ('<', VarType.FLOAT): "setb",
+  ('>', VarType.FLOAT): "seta",
+  ('<=', VarType.FLOAT): "setbe",
+  ('>=', VarType.FLOAT): "setae"
 }
 
 
@@ -184,6 +201,7 @@ class Parser:
     self.data = set()
     self.labelindex = 0
     self.stringTable = {}
+    self.floatTable = {}
 
   def advance(self):
     self.token = self.lexer.nextToken()
@@ -246,6 +264,8 @@ class Parser:
       self.addData("_%s: dd 0" % var)
     elif varType == VarType.STR:
       self.addData("_%s: dq 0" % var)
+    elif varType == VarType.FLOAT:
+      self.addData("_%s: dq 0.0" % var)
     else:
       self.fail()
       return
@@ -262,6 +282,9 @@ class Parser:
       return
     elif varType == VarType.STR:
       print("  mov [_%s], RAX" % var)
+      return
+    elif varType == VarType.FLOAT:
+      print("  movsd [_%s], XMM0" % var)
       return
     self.fail()
 
@@ -351,6 +374,16 @@ class Parser:
       println()
       print("  add RSP, 0x20")
       return
+    elif exprType == VarType.FLOAT:
+      self.addData("FLOAT_FMT: db '%.16g', 0")
+      print("  mov RCX, FLOAT_FMT")
+      print("  movq RDX, XMM0")
+      print("  sub RSP, 0x20")
+      print("  extern printf")
+      print("  call printf")
+      println()
+      print("  add RSP, 0x20")
+      return
 
     self.fail("Cannot print of type %s" % exprType)
 
@@ -395,23 +428,35 @@ class Parser:
   def expr(self):
     leftType = self.atom()
     if self.token.tokenType == TokenType.SYMBOL:
-      print("  push rax")
+      if leftType == VarType.FLOAT:
+        # Push xmm0
+        print("  sub RSP, 0x08")
+        print("  movq [RSP], xmm0")
+      else:
+        print("  push rax")
       op = self.token.value
       self.advance()
       rightType = self.atom()
       if leftType != rightType:
         self.fail("Cannot apply %s to %s" % (leftType, rightType))
-      print("  pop rbx")  # rbx was old left
+      if leftType == VarType.FLOAT:
+        # pop xmm1
+        print("  movq xmm1, [RSP]")
+        print("  add RSP, 0x08")
+      else:
+        print("  pop rbx")  # rbx was old left
       opcode = OPCODES.get((op, leftType))
       if opcode:
         print("  %s" % opcode)
         return leftType
-      opcode = CMP_OPCODES.get((op, leftType))
+      opcode = CMP_OPCODE.get(leftType)
       if not opcode:
         self.fail("Unknown opcode for op %s" % op)
       # Not sure why not eax, ebx, but that's what v0.d does
-      print("  cmp ebx, eax")
-      print("  %s al" % opcode)
+      print("  %s" % opcode)
+      setx = SETx_OPCODE.get((op, leftType))
+      # print("  cmp ebx, eax")
+      print("  %s al" % setx)
       return VarType.BOOL
     return leftType
 
@@ -425,28 +470,49 @@ class Parser:
     self.addData('%s: db "%s", 0' % (name, const))
     return name
 
+  def addFloatConstant(self, const):
+    name = self.floatTable.get(const)
+    if name:
+      return name
+    # make a name
+    name = "FLOAT_%d" % self.nextLabel()
+    self.floatTable[const] = name
+    self.addData('%s: dq %s' % (name, const))
+    return name
+
   def atom(self):
+    varType = self.token.varType
     if self.token.tokenType == TokenType.CONST:
-      if self.token.varType == VarType.INT:
+      if varType == VarType.INT:
         const = self.token.value
         print("  mov EAX, %s" % const)
         self.advance()
-        return VarType.INT
-      elif self.token.varType == VarType.STR:
+        return varType
+      elif varType == VarType.STR:
         const = self.token.value
         name = self.addStringConstant(const)
         print("  mov RAX, %s" % name)
         self.advance()
-        return VarType.STR
+        return varType
+      elif varType == VarType.FLOAT:
+        const = self.token.value
+        name = self.addFloatConstant(const)
+        print("  movsd XMM0, [%s]" % name)
+        self.advance()
+        return varType
     elif self.token.tokenType == TokenType.VAR:
-      if self.token.varType == VarType.INT:
+      if varType == VarType.INT:
         print("  mov EAX, [_%s]" % self.token.value)
         self.advance()
-        return VarType.INT
-      elif self.token.varType == VarType.STR:
+        return varType
+      elif varType == VarType.STR:
         print("  mov RAX, [_%s]" % self.token.value)
         self.advance()
-        return VarType.STR
+        return varType
+      elif varType == VarType.FLOAT:
+        print("  movsd XMM0, [_%s]" % self.token.value)
+        self.advance()
+        return varType
     self.fail("Cannot parse atom")
 
 

@@ -11,20 +11,43 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class Parser {
-  private static final Map<Symbol, String> ARITH_OPCODES =
+  private static final Map<Symbol, String> INT_ARITH_OPCODES =
       ImmutableMap.of(
-          Symbol.PLUS, "add eax, ebx",
-          Symbol.MULT, "imul eax, ebx",
-          Symbol.DIV, "xchg eax, ebx\n  cdq\n  idiv ebx",
-          Symbol.MINUS, "xchg eax, ebx\n  sub eax, ebx");
-  private static final Map<Symbol, String> CMP_OPCODES =
+          Symbol.PLUS, "add EAX, EBX",
+          Symbol.MULT, "imul EAX, EBX",
+          Symbol.DIV, "xchg EAX, EBX\n  cdq\n  idiv EBX",
+          Symbol.MINUS, "xchg EAX, EBX\n  sub EAX, EBX");
+  private static final Map<Symbol, String> FLOAT_ARITH_OPCODES =
       ImmutableMap.of(
-          Symbol.EQEQ, "setz",
-          Symbol.NEQ, "setnz",
-          Symbol.LT, "setl",
-          Symbol.GT, "setg",
-          Symbol.GEQ, "setge",
-          Symbol.LEQ, "setle");
+          Symbol.PLUS, "addsd XMM0, XMM1",
+          Symbol.MULT, "mulsd XMM0, XMM1",
+          Symbol.DIV, "divsd XMM1, XMM0\n  movq XMM0, XMM1",
+          Symbol.MINUS, "subsd XMM1, XMM0\n  movq XMM0, XMM1");
+  private static final Map<VarType, Map<Symbol, String>> ARITH_OPCODES =
+      ImmutableMap.of(
+          VarType.INT, INT_ARITH_OPCODES,
+          VarType.FLOAT, FLOAT_ARITH_OPCODES);
+
+  private static final Map<Symbol, String> INT_CMP_OPCODES =
+      ImmutableMap.of(
+          Symbol.EQEQ, "cmp EBX, EAX\n  setz AL",
+          Symbol.NEQ, "cmp EBX, EAX\n  setnz AL",
+          Symbol.LT, "cmp EBX, EAX\n  setl AL",
+          Symbol.GT, "cmp EBX, EAX\n  setg AL",
+          Symbol.GEQ, "cmp EBX, EAX\n  setge AL",
+          Symbol.LEQ, "cmp EBX, EAX\n  setle AL");
+  private static final Map<Symbol, String> FLOAT_CMP_OPCODES =
+      ImmutableMap.of(
+          Symbol.EQEQ, "comisd XMM1, XMM0\n  setz AL",
+          Symbol.NEQ, "comisd XMM1, XMM0\n  setnz AL",
+          Symbol.LT, "comisd XMM1, XMM0\n  setb AL",
+          Symbol.GT, "comisd XMM1, XMM0\n  seta AL",
+          Symbol.GEQ, "comisd XMM1, XMM0\n  setbe AL",
+          Symbol.LEQ, "comisd XMM1, XMM0\n  setae AL");
+  private static final Map<VarType, Map<Symbol, String>> CMP_OPCODES =
+      ImmutableMap.of(
+          VarType.INT, INT_CMP_OPCODES,
+          VarType.FLOAT, FLOAT_CMP_OPCODES);
 
   private final Lexer lexer;
   private final List<String> code = new LinkedList<>();
@@ -32,6 +55,7 @@ public class Parser {
   private Set<String> data = new HashSet<>();
   // Maps from value to name
   private Map<String, String> stringTable = new HashMap<>();
+  private Map<String, String> floatTable = new HashMap<>();
 
   public Parser(String text) {
     this.lexer = new Lexer(text);
@@ -168,6 +192,10 @@ public class Parser {
         emit("mov [_%s], RAX", varname);
         return;
 
+      case FLOAT:
+        emit("movq [_%s], XMM0", varname);
+        return;
+
       default:
         break;
     }
@@ -192,10 +220,16 @@ public class Parser {
       case BOOL:
         addData("TRUE: db 'true', 0");
         addData("FALSE: db 'false', 0");
-        emit("cmp al, 1");
+        emit("cmp AL, 1");
         emit("mov RCX, FALSE");
         emit("mov RDX, TRUE");
         emit("cmovz RCX, RDX");
+        break;
+
+      case FLOAT:
+        addData("FLOAT_FMT: db '%.16g', 0");
+        emit("mov RCX, FLOAT_FMT");
+        emit("movq RDX, XMM0");
         break;
 
       default:
@@ -220,7 +254,7 @@ public class Parser {
     expect(Keyword.THEN);
     String elseLabel = nextLabel("else");
     String endIfLabel = nextLabel("endIf");
-    emit("cmp al, 0");
+    emit("cmp AL, 0");
     emit("jz " + elseLabel);
     statements(ImmutableList.of(Keyword.ELSE, Keyword.ENDIF));
     boolean hasElse = isKeyword(Keyword.ELSE);
@@ -241,27 +275,56 @@ public class Parser {
   private VarType expr() {
     VarType leftType = atom();
     if (token.type == TokenType.SYMBOL) {
-      emit("push rax");
+      switch (leftType) {
+        case INT:
+          emit("push RAX");
+          break;
+
+        case FLOAT:
+          // push XMM0
+          emit("sub RSP, 0x08");
+          emit("movq [RSP], XMM0");
+          break;
+
+        default:
+          fail("Cannot combine yet");
+          break;
+      }
       Symbol symbol = currentSymbol();
       advance();
       VarType rightType = atom();
       checkTypes(leftType, rightType);
-      emit("pop rbx");
+      switch (leftType) {
+        case INT:
+          emit("pop RBX");
+          break;
+
+        case FLOAT:
+          // pop XMM1
+          emit("movq XMM1, [RSP]");
+          emit("add RSP, 0x08");
+
+          break;
+
+        default:
+          fail("Cannot combine yet");
+          break;
+      }
       return emitOpCodeCode(symbol, leftType);
     }
+
     return leftType;
   }
 
   private VarType emitOpCodeCode(Symbol symbol, VarType type) {
-    String arith = ARITH_OPCODES.get(symbol);
+    String arith = ARITH_OPCODES.get(type).getOrDefault(symbol, null);
     if (arith != null) {
       emit(arith);
       return type;
     }
-    String cmp = CMP_OPCODES.get(symbol);
+    String cmp = CMP_OPCODES.get(type).getOrDefault(symbol, null);
     if (cmp != null) {
-      emit("cmp ebx, eax");
-      emit(cmp + " al");
+      emit(cmp);
       return VarType.BOOL;
     }
     fail("Cannot emit opcode for " + symbol.toString());
@@ -284,6 +347,12 @@ public class Parser {
           advance();
           return tokenType;
 
+        case FLOAT:
+          var floatName = addFloatConstant(token.stringValue);
+          emit("movq XMM0, [" + floatName + "]");
+          advance();
+          return tokenType;
+
         default:
           break;
       }
@@ -300,12 +369,28 @@ public class Parser {
           advance();
           return tokenType;
 
+        case FLOAT:
+          emit("movq XMM0, [_%s]", token.stringValue);
+          advance();
+          return tokenType;
+
         default:
           break;
       }
     }
     fail("Cannot parse " + token.stringValue);
     return VarType.NONE;
+  }
+
+  private Object addFloatConstant(String value) {
+    String name = floatTable.get(value);
+    if (name != null) {
+      return name;
+    }
+    name = nextLabel("FLOAT");
+    floatTable.put(value, name);
+    addData(String.format("%s: dq %s", name, value));
+    return name;
   }
 
   private Object addStringConstant(String value) {

@@ -86,6 +86,9 @@ void Parser::assignment() {
     case STR:
       emit("mov [_" + name + "], RAX");
       break;
+    case FLOAT:
+      emit("movq [_" + name + "], XMM0");
+      break;
   }
 }
 
@@ -113,6 +116,12 @@ void Parser::parsePrint() {
       emit("cmovz RCX, RDX");
       break;
 
+    case FLOAT:
+      addData("FLOAT_FMT: db '%.16g', 0");
+      emit("mov RCX, FLOAT_FMT");
+      emit("movq RDX, XMM0");
+      break;
+
     default:
       fail("Cannot print token " + token->value());
       break;
@@ -122,7 +131,7 @@ void Parser::parsePrint() {
   emit("call printf");
   if (isPrintln) {
     emit("extern putchar");
-    emit("mov rcx, 10");
+    emit("mov RCX, 10");
     emit("call putchar");
   }
   emit("add RSP, 0x20");
@@ -134,7 +143,7 @@ void Parser::parseIf() {
   checkTypes(condType, BOOL_TYPE);
   string elseLabel = nextLabel("else");
   string endIfLabel = nextLabel("endif");
-  emit("cmp al, 0x01");
+  emit("cmp AL, 0x01");
   emit("jne " + elseLabel);
 
   expect(THEN);
@@ -213,27 +222,37 @@ void Parser::parseFor() {
 VarType Parser::expr() {
   VarType leftType = atom();
   if (token->type() == SYMBOL) {
-    emit("push rax");
+    if (leftType == INT) {
+      emit("push RAX");
+    } else {
+      emit("sub RSP, 0x08");
+      emit("movq [RSP], XMM0");
+    }
     Symbol symbol = token->symbol();
     advance();
 
     VarType rightType = atom();
     checkTypes(leftType, rightType);
-    emit("pop rbx");
+    if (leftType == INT) {
+      emit("pop RBX");
+    } else {
+      // pop XMM1
+      emit("movq XMM1, [RSP]");
+      emit("add RSP, 0x08");
+    }
 
-    string opcode = lookup(arithOpcodes, symbol);
+    string opcode = lookup(arithOpcodes, {symbol, leftType} );
     if (opcode != NOT_FOUND) {
       emit(opcode);
       return leftType;
     }
     // lookup cmp opcodes
-    opcode = lookup(cmpOpcodes, symbol);
+    opcode = lookup(cmpOpcodes, {symbol, leftType});
     if (opcode == NOT_FOUND) {
       fail("Cannot find code for opcode " + to_string(symbol));
       return NONE;
     }
-    emit("cmp ebx, eax");
-    emit(opcode + " al");
+    emit(opcode);
     return BOOL_TYPE;
   }
   return leftType;
@@ -254,6 +273,10 @@ VarType Parser::atom() {
           emit("mov RAX, " + addStringConstant(value));
           advance();
           return varType;
+        case FLOAT:
+          emit("movq XMM0, [" + addFloatConstant(value) + "]");
+          advance();
+          return varType;
       }
       break;
 
@@ -265,6 +288,10 @@ VarType Parser::atom() {
           return varType;
         case STR:
           emit("mov RAX, [_" + value + "]");
+          advance();
+          return varType;
+        case FLOAT:
+          emit("movq XMM0, [_" + value + "]");
           advance();
           return varType;
       }
@@ -300,7 +327,7 @@ string Parser::addStringConstant(string value) {
   if (name != NOT_FOUND) {
     return name;
   }
-  name = nextLabel("CONST_");
+  name = nextLabel("CONST");
   stringTable.insert( { value, name });
   string data = name;
   data.append(": db \"").append(value).append("\", 0");
@@ -308,7 +335,19 @@ string Parser::addStringConstant(string value) {
   return name;
 }
 
-string Parser::nextLabel(string prefix) {
-  return prefix + to_string(nextInt());
+string Parser::addFloatConstant(string value) {
+  string name = lookup(floatTable, value);
+  if (name != NOT_FOUND) {
+    return name;
+  }
+  name = nextLabel("FLOAT");
+  floatTable.insert( { value, name });
+  string data = name;
+  data.append(": dq ").append(value);
+  addData(data);
+  return name;
 }
 
+string Parser::nextLabel(string prefix) {
+  return prefix + "_" + to_string(nextInt());
+}

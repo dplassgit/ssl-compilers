@@ -52,14 +52,20 @@ Token* Lexer::makeNumber() {
   char first = cc;
   string value(1, first);
   advance();
-  int num = first - 48;
   while (isdigit(cc)) {
     value += cc;
-    num = num * 10 + (cc - 48);
     advance();
   }
-  Token *t = new Token(CONST, value, INT);
-  return t->intValue(num);
+  if (cc == '.') {
+    value += cc;
+    advance();
+    while (isdigit(cc)) {
+      value += cc;
+      advance();
+    }
+    return new Token(CONST, value, FLOAT);
+  }
+  return new Token(CONST, value, INT);
 }
 
 string str_toupper(string s) {

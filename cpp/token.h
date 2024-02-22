@@ -42,15 +42,6 @@ public:
     return m_type;
   }
 
-  Token* intValue(int num) {
-    m_num = num;
-    return this;
-  }
-
-  int intValue() {
-    return m_num;
-  }
-
   VarType varType() {
     return m_varType;
   }
@@ -80,7 +71,6 @@ public:
 private:
   TokenType m_type;
   std::string m_value;
-  int m_num;
   VarType m_varType = NONE;
   Keyword m_kw = NO_KEYWORD;
   Symbol m_symbol = NO_SYMBOL;

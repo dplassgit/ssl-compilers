@@ -1,0 +1,8 @@
+a=1.0
+n=10
+b=1.0
+for i = 1 to n+1
+  a = a * b
+  print b print "!=" println a
+  b = b + 1.0
+endfor

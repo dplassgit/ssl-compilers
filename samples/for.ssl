@@ -1,9 +1,9 @@
 j=20
-for i = 2 to j+1
+for i = 2 to 20
   print "i="
   print i
   print "; j="
   println j
   i = i + 2
-  j = j - 1
+  j = j * 3
 endfor

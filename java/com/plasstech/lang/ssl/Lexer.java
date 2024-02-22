@@ -128,6 +128,15 @@ public class Lexer {
       num += cc;
       advance();
     }
+    if (cc == '.') {
+      num += cc;
+      advance();
+      while (Character.isDigit(cc)) {
+        num += cc;
+        advance();
+      }
+      return new ConstToken<Float>(Float.parseFloat(num), VarType.FLOAT);
+    }
     return new ConstToken<Integer>(Integer.parseInt(num), VarType.INT);
   }
 }

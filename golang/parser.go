@@ -2,21 +2,37 @@ package main
 
 import "fmt"
 
-
-var arithOpcodes = map[SymbolType]string {
-  Plus: "add EAX, EBX",
-  Mult: "imul EAX, EBX",
-  Div: "xchg EAX, EBX\n  cdq\n  idiv EBX",
-  Minus: "xchg EAX, EBX\n  sub EAX, EBX",
+type Pair struct {
+  k1 SymbolType
+  k2 VarType
 }
 
-var cmpOpcodes = map[SymbolType]string {
-  EqEq: "setz",
-  Neq: "setnz",
-  Lt: "setl",
-  Gt: "setg",
-  Geq: "setge",
-  Leq: "setle",
+var arithOpcodes = map[Pair]string {
+  {Plus, IntVarType}: "add EAX, EBX",
+  {Mult, IntVarType}: "imul EAX, EBX",
+  {Div, IntVarType}: "xchg EAX, EBX\n  cdq\n  idiv EBX",
+  {Minus, IntVarType}: "xchg EAX, EBX\n  sub EAX, EBX",
+
+  {Plus, FloatVarType}: "addsd XMM0, XMM1",
+  {Mult, FloatVarType}: "mulsd XMM0, XMM1",
+  {Div, FloatVarType}: "divsd XMM1, XMM0\n  movq XMM0, XMM1",
+  {Minus, FloatVarType}: "subsd XMM1, XMM0\n  movq XMM0, XMM1",
+}
+
+var cmpOpcodes = map[Pair]string {
+  {EqEq, IntVarType}: "cmp EBX, EAX\n  setz AL",
+  {Neq, IntVarType}: "cmp EBX, EAX\n  setnz AL",
+  {Lt, IntVarType}: "cmp EBX, EAX\n  setl AL",
+  {Gt, IntVarType}: "cmp EBX, EAX\n  setg AL",
+  {Geq, IntVarType}: "cmp EBX, EAX\n  setge AL",
+  {Leq, IntVarType}: "cmp EBX, EAX\n  setle AL",
+
+  {EqEq, FloatVarType}: "comisd XMM1, XMM0\n  setz AL",
+  {Neq, FloatVarType}: "comisd XMM1, XMM0\n  setnz AL",
+  {Lt, FloatVarType}: "comisd XMM1, XMM0\n  setb AL",
+  {Gt, FloatVarType}: "comisd XMM1, XMM0\n  seta AL",
+  {Geq, FloatVarType}: "comisd XMM1, XMM0\n  setbe AL",
+  {Leq, FloatVarType}: "comisd XMM1, XMM0\n  setae AL",
 }
 
 
@@ -28,6 +44,7 @@ type Parser struct {
   data map[string]bool
   // map from value to name.
   stringTable map[string]string
+  floatTable map[string]string
   id int
 }
 
@@ -38,6 +55,7 @@ func NewParser(text string) Parser {
     id: 0,
     data: make(map[string]bool),
     stringTable: make(map[string]string),
+    floatTable: make(map[string]string),
   }
   parser.advance()
   return parser
@@ -105,6 +123,8 @@ func (this *Parser) parseAssignment() {
       this.emit(fmt.Sprintf("mov [_%s], EAX", t.value))
     case StrVarType:
       this.emit(fmt.Sprintf("mov [_%s], RAX", t.value))
+    case FloatVarType:
+      this.emit(fmt.Sprintf("movq [_%s], XMM0", t.value))
     default:
       panic("Cannot parse assignment starting with " + t.value)
   }
@@ -213,13 +233,18 @@ func (this *Parser) parsePrint() {
     case BoolVarType:
       this.addData("TRUE: db 'true', 0")
       this.addData("FALSE: db 'false', 0")
-      this.emit("cmp al, 1")
+      this.emit("cmp AL, 1")
       this.emit("mov RCX, FALSE")
       this.emit("mov RDX, TRUE")
       this.emit("cmovz RCX, RDX")
 
     case StrVarType:
       this.emit("mov RCX, RAX")
+
+    case FloatVarType:
+      this.addData("FLOAT_FMT: db '%.16g', 0")
+      this.emit("mov RCX, FLOAT_FMT")
+      this.emit("movq RDX, XMM0")
 
     default:
       panic("Cannot print type " + varTypeToString[exprType])
@@ -239,25 +264,36 @@ func (this *Parser) parsePrint() {
 func (this *Parser) expr() VarType {
   leftType := this.atom()
   if this.token.tokenType == Symbol {
-    if leftType != IntVarType {
+    if leftType == StrVarType {
       panic("Cannot combine objects of type " + varTypeToString[leftType])
     }
-    this.emit("push RAX")
+    if leftType == FloatVarType {
+      // Push XMM0
+      this.emit("sub RSP, 0x08")
+      this.emit("movq [RSP], XMM0")
+    } else {
+      this.emit("push RAX")
+    }
     op := this.token
     this.advance()
     rightType := this.atom()
     this.checkTypes(leftType, rightType)
-    this.emit("pop RBX")
+    if leftType == FloatVarType {
+      // pop XMM1
+      this.emit("movq XMM1, [RSP]")
+      this.emit("add RSP, 0x08")
+    } else {
+      this.emit("pop RBX")
+    }
 
-    code, ok := arithOpcodes[op.symbol]
+    code, ok := arithOpcodes[Pair{k1: op.symbol, k2:leftType}]
     if ok {
       this.emit(code)
       return leftType
     }
-    code, ok = cmpOpcodes[op.symbol]
+    code, ok = cmpOpcodes[Pair{k1:op.symbol, k2:leftType}]
     if ok {
-      this.emit("cmp EBX, EAX")
-      this.emit(code + " AL")
+      this.emit(code)
       return BoolVarType
     }
     panic("Cannot generate code for op " + op.value)
@@ -273,12 +309,18 @@ func (this *Parser) atom() VarType {
         this.emit("mov EAX, " + this.token.value)
         this.advance()
         return IntVarType
+
       case StrVarType:
-        // string constant
         name := this.makeStringConstant(this.token.value)
         this.emit("mov RAX, " + name)
         this.advance()
         return StrVarType
+
+      case FloatVarType:
+        name := this.makeFloatConstant(this.token.value)
+        this.emit(fmt.Sprintf("movq XMM0, [%s]", name))
+        this.advance()
+        return FloatVarType
     }
 
     case Var:
@@ -292,6 +334,11 @@ func (this *Parser) atom() VarType {
         this.emit(fmt.Sprintf("mov RAX, [_%s]", this.token.value))
         this.advance()
         return StrVarType
+
+      case FloatVarType:
+        this.emit(fmt.Sprintf("movq XMM0, [_%s]", this.token.value))
+        this.advance()
+        return FloatVarType
     }
   }
   panic("Cannot parse atom " + this.token.value)
@@ -305,6 +352,17 @@ func (this *Parser) makeStringConstant(value string) string {
   name = this.nextLabel("CONST")
   this.stringTable[value] = name
   this.addData(fmt.Sprintf("%s: db '%s', 0", name, value))
+  return name
+}
+
+func (this *Parser) makeFloatConstant(value string) string {
+  name, ok := this.floatTable[value]
+  if ok {
+    return name
+  }
+  name = this.nextLabel("FLOAT")
+  this.floatTable[value] = name
+  this.addData(fmt.Sprintf("%s: dq %s", name, value))
   return name
 }
 
@@ -355,6 +413,8 @@ func (this *Parser) addDataByType(name string, varType VarType) {
       this.addData("_" + name + ": dd 0")
     case StrVarType:
       this.addData("_" + name + ": dq 0")
+    case FloatVarType:
+      this.addData("_" + name + ": dq 0.0")
     default:
       panic("Cannot add variable of type " + varTypeToString[varType])
   }

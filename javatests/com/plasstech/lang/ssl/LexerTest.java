@@ -41,6 +41,16 @@ public class LexerTest {
   }
 
   @Test
+  public void nextTokenFloatConstant() {
+    Lexer lexer = new Lexer("1.123");
+    Token token = lexer.nextToken();
+    assertThat(token.type).isEqualTo(TokenType.CONST);
+    ConstToken<Float> constToken = (ConstToken<Float>) token;
+    assertThat(constToken.value()).isEqualTo(1.123F);
+    assertThat(constToken.varType()).isEqualTo(VarType.FLOAT);
+  }
+
+  @Test
   public void nextTokenStringConstant() {
     Lexer lexer = new Lexer("\"hi\"");
     Token token = lexer.nextToken();

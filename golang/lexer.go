@@ -112,6 +112,16 @@ func (this *Lexer) makeNumber() Token {
     value += string(this.cc)
     this.advance()
   }
+  if this.cc == '.' {
+    // Float
+    value += string(this.cc)
+    this.advance()
+    for isdigit(this.cc) && this.cc != 0 {
+      value += string(this.cc)
+      this.advance()
+    }
+    return Token{tokenType: Const, value: value, varType: FloatVarType}
+  }
   return Token{tokenType: Const, value: value, varType: IntVarType}
 }
 
