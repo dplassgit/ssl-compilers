@@ -12,9 +12,9 @@ See [language overview](docs/LANGUAGE.md).
 
 ## Development history
 
-I built the Python version first. It's also the smallest, at only about 400 lines.
+I built the Python version first. It's also the smallest, at only about 500 lines.
 
-Then I built the Java version, including some JUnit tests. I have the most recent
+Then I built the Java version, including some JUnit tests. I have the most
 experience with Java (including the d2lang compiler).
 
 C++ was a challenge, because I hadn't written any in a long time (like, 25 years).
@@ -24,5 +24,6 @@ file.
 Next I built the golang version. This is now the most golang I have ever written
 (about 700 lines). Since golang doesn't really have classes, it was odd to have
 to add `(this *Parser)` for every method. Also, golang doesn't have method 
-overlodaing, which I also found surprising.
+overloading, which I also found surprising.
 
+On deck are C, Rust, Scala, Kotlin, d2lang, Ruby and maybe Bash.
