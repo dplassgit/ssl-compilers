@@ -23,12 +23,12 @@ public:
     arithOpcodes.insert( { {DIV, FLOAT}, "divsd XMM1, XMM0\n  movsd XMM0, XMM1" });
     arithOpcodes.insert( { {MINUS, FLOAT}, "subsd XMM1, XMM0\n  movsd XMM0, XMM1" });
 
-    cmpOpcodes.insert( { { EQEQ, INT}, "comisd XMM1, XMM0\n  setz AL" });
-    cmpOpcodes.insert( { { NEQ, INT}, "comisd XMM1, XMM0\n  setnz AL" });
-    cmpOpcodes.insert( { { LT, INT}, "comisd XMM1, XMM0\n  setl AL" });
-    cmpOpcodes.insert( { { GT, INT}, "comisd XMM1, XMM0\n  setg AL" });
-    cmpOpcodes.insert( { { GEQ, INT}, "comisd XMM1, XMM0\n  setge AL"});
-    cmpOpcodes.insert( { { LEQ, INT}, "comisd XMM1, XMM0\n  setle AL" });
+    cmpOpcodes.insert( { { EQEQ, INT}, "cmp EBX, EAX\n  setz AL" });
+    cmpOpcodes.insert( { { NEQ, INT}, "cmp EBX, EAX\n  setnz AL" });
+    cmpOpcodes.insert( { { LT, INT}, "cmp EBX, EAX\n  setl AL" });
+    cmpOpcodes.insert( { { GT, INT}, "cmp EBX, EAX\n  setg AL" });
+    cmpOpcodes.insert( { { GEQ, INT}, "cmp EBX, EAX\n  setge AL"});
+    cmpOpcodes.insert( { { LEQ, INT}, "cmp EBX, EAX\n  setle AL" });
 
     cmpOpcodes.insert( { { EQEQ, FLOAT}, "comisd XMM1, XMM0\n  setz AL" });
     cmpOpcodes.insert( { { NEQ, FLOAT}, "comisd XMM1, XMM0\n  setnz AL" });

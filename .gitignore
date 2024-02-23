@@ -13,6 +13,7 @@
 # Executables
 *.exe
 *.asm
+*.swp
 /bin/
 bazel-bin/
 bazel-out/

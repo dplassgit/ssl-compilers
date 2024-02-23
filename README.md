@@ -26,4 +26,8 @@ Next I built the golang version. This is now the most golang I have ever written
 to add `(this *Parser)` for every method. Also, golang doesn't have method 
 overloading, which I also found surprising.
 
-On deck are C, Rust, Scala, Kotlin, d2lang, Ruby and maybe Bash.
+The C version was really annoying because:
+  * It doesn't have "simple" string concatenation
+  * No built-in map, set, list
+
+On deck are Rust, Scala, Kotlin, d2lang, Ruby and maybe awk or bash.

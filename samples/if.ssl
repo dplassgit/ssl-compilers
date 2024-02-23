@@ -1,6 +1,6 @@
 i=3
 
-#println "Should be 1,2,7,8"
+println "Should be 1,2,7,8"
 if i == 3 then
   println 1
   println 2
