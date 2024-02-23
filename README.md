@@ -12,7 +12,7 @@ See [language overview](docs/LANGUAGE.md).
 
 ## Development history
 
-I built the Python version first. It's also the smallest, at only about 400 lines.
+I built the Python version first. It's also the smallest, at only about 500 lines.
 
 Then I built the Java version, including some JUnit tests. I have the most recent
 experience with Java (including the d2lang compiler).
