@@ -1,15 +1,22 @@
 # SSL Overview
 
-Note: Not everything is implemented.
+## Types
+
+SSL supports the following types:
+* integer (32 bits)
+* floating point (64 bits)
+* strings (null-terminated)
+
+Currently, only comparisons (IF statements) use booleans.
 
 
 ## Variables
 
-All variables are one letter.
+All variable names are one letter long.
 
-Like in Fortran, variables `i` through `n` are integers (32-bits).
+Like in Fortran, variables `i` through `n` are integers.
 
-(Future expansion: variables `a` through `h` are 64-bit floats.)
+Variables `a` through `h` are 64-bit floats.
 
 (Future expansion: variables `o` through `r` are booleans.)
 
@@ -32,9 +39,9 @@ Use a hashtag (#) for a comment to end-of-line.
 
 Integer or floating point math: `+ - * /`
 
-Comparisons: `== != < <= > >=`
+Integer or floating point comparisons: `== != < <= > >=`
 
-(Future expansion: Strings: `+ [index]`)
+(Future expansion: Strings: `+ [index]` and comparisons.)
 
 
 ## Statements
@@ -45,7 +52,7 @@ There are assignments, control flow, and output statements.
 
 `(variable) = (expression)`
 
-Expressions are limited to a simple assignment, a single unary or a single
+Expressions are limited to a simple assignment or a single
 binary expression, e.g.,
 
 `a = 3.0`
