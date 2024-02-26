@@ -9,4 +9,4 @@ s
 z
 for i IF THEN else endfor endif print
 println
->= <= < > != == =*+/-
+< > = >= <= != == *+/-

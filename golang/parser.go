@@ -204,7 +204,7 @@ func (this *Parser) parseFor() {
   endForLabel := this.nextLabel("endfor")
 
   toType := this.expr()
-  if fromType != IntVarType {
+  if toType != IntVarType {
     panic("FOR 'to' expression must be INT, was " + varTypeToString[toType])
   }
 

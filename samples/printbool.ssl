@@ -6,4 +6,4 @@ println i<j
 println 4.0>=3.0
 a=10.0
 b=20.0
-println b<a
+println b>a

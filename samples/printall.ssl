@@ -1,0 +1,7 @@
+println 10
+println 3.14
+println 20
+println "Constant"
+println 6.28
+println "Another constant"
+println 3.14

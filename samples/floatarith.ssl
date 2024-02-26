@@ -1,0 +1,13 @@
+a=1.23
+b=34.56
+c=a+b
+println c
+
+d=a*c
+println d
+
+e=d/c
+println e
+
+f=b-a
+println f
