@@ -64,9 +64,9 @@ public class Lexer {
       symbolString += cc;
       advance(); // eat the second
     }
-    for (Symbol symboLEnum : Symbol.values()) {
-      if (symboLEnum.value.equals(symbolString)) {
-        return new SymbolToken(symboLEnum);
+    for (Symbol symbolEnum : Symbol.values()) {
+      if (symbolEnum.value.equals(symbolString)) {
+        return new SymbolToken(symbolEnum);
       }
     }
     fail("Unknown symbol " + symbolString);
