@@ -30,4 +30,19 @@ The C version was really annoying because:
   * It doesn't have "simple" string concatenation
   * No built-in map, set, list
 
-On deck are Rust, Scala, Kotlin, d2lang, Ruby and maybe awk or bash.
+I think I enjoyed the Kotlin version the most so far, if only because the way
+it so easily builds string literals. The language reminds me of the best parts
+of Java, and the best parts of Python.
+
+Future languages may include:
+   * Scala
+   * d2lang
+   * Ruby
+   * D
+   * Rust (although I had issues using bazel with Rust)
+   * Sly (a Python parser generator)
+   * ANTLR (another parser generator)
+   * awk
+   * bash script
+
+
