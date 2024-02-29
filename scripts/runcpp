@@ -1,4 +1,1 @@
-BASE=`basename -s .ssl $1`
-rm -f $BASE.exe
-blaze run cpp:sslc --ui_event_filters=-info,-stdout,-stderr --noshow_progress < $1 > $BASE.asm && nasm -fwin64 $BASE.asm && gcc $BASE.obj -o $BASE.exe && ./$BASE.exe
-
+./scripts/runany cpp $1

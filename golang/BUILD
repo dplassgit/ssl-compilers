@@ -2,7 +2,7 @@ load("@rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_binary(
     name = "sslc",
-    embed = [":golang_lib"],  # why embed?
+    embed = [":golang_lib"],
     visibility = ["//visibility:public"],
 )
 
@@ -14,6 +14,6 @@ go_library(
         "sslc.go",
         "token.go",
     ],
-    importpath = ".", # golang/golang",  # why golang/golang?! makes no tidference
+    importpath = ".",
     visibility = ["//visibility:private"],
 )

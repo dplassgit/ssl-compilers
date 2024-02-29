@@ -1,0 +1,5 @@
+BASE=`basename -s .ssl $2`
+rm -f $BASE.exe $BASE.obj $BASE.asm
+blaze run $1:sslc --ui_event_filters=-info,-stdout,-stderr --noshow_progress < $2 > $BASE.asm && nasm -fwin64 $BASE.asm && gcc $BASE.obj -o $BASE.exe
+#blaze run $1:sslc < $2 > $BASE.asm && nasm -fwin64 $BASE.asm && gcc $BASE.obj -o $BASE.exe
+test -x $BASE.exe && ./$BASE.exe
