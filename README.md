@@ -30,9 +30,10 @@ The C version was really annoying because:
   * It doesn't have "simple" string concatenation
   * No built-in map, set, list
 
-I think I enjoyed the Kotlin version the most so far, if only because the way
-it so easily builds string literals. The language reminds me of the best parts
-of Java, and the best parts of Python.
+I had heard lots about Kotlin but never written a line of code before this 
+project. I think I enjoyed the Kotlin version the most so far, maybe because
+of how it so easily builds string literals. The language reminds me of the best
+parts of Java and the best parts of Python.
 
 Future languages may include:
    * Scala
@@ -40,7 +41,7 @@ Future languages may include:
    * Ruby
    * D
    * Rust
-   * [Sly]([https://github.com/dabeaz/sly) (a Python parser generator)
+   * [Sly](https://github.com/dabeaz/sly) (a Python parser generator)
    * [ANTLR](https://www.antlr.org/) ("Another Tool for another parser generator")
    * awk
    * bash
