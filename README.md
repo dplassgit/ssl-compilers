@@ -36,13 +36,13 @@ of Java, and the best parts of Python.
 
 Future languages may include:
    * Scala
-   * d2lang
+   * [d2lang](https://github.com/dplassgit/d2lang)
    * Ruby
    * D
-   * Rust (although I had issues using bazel with Rust)
-   * Sly (a Python parser generator)
-   * ANTLR (another parser generator)
+   * Rust
+   * [Sly]([https://github.com/dabeaz/sly) (a Python parser generator)
+   * [ANTLR](https://www.antlr.org/) ("Another Tool for another parser generator")
    * awk
-   * bash script
+   * bash
 
 

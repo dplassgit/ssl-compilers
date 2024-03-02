@@ -1,3 +1,5 @@
 common --enable_bzlmod
+startup --windows_enable_symlinks
+build --enable_runfiles
 build --color=yes --java_language_version=17 --java_runtime_version=17
 test --color=yes --test_output=errors
