@@ -42,8 +42,8 @@ public class Parser {
           Symbol.NEQ, "comisd XMM1, XMM0\n  setnz AL",
           Symbol.LT, "comisd XMM1, XMM0\n  setb AL",
           Symbol.GT, "comisd XMM1, XMM0\n  seta AL",
-          Symbol.GEQ, "comisd XMM1, XMM0\n  setbe AL",
-          Symbol.LEQ, "comisd XMM1, XMM0\n  setae AL");
+          Symbol.LEQ, "comisd XMM1, XMM0\n  setbe AL",
+          Symbol.GEQ, "comisd XMM1, XMM0\n  setae AL");
   private static final Map<VarType, Map<Symbol, String>> CMP_OPCODES =
       ImmutableMap.of(
           VarType.INT, INT_CMP_OPCODES,

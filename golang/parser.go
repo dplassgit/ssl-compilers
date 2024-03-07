@@ -31,8 +31,8 @@ var cmpOpcodes = map[Pair]string {
   {Neq, FloatVarType}: "comisd XMM1, XMM0\n  setnz AL",
   {Lt, FloatVarType}: "comisd XMM1, XMM0\n  setb AL",
   {Gt, FloatVarType}: "comisd XMM1, XMM0\n  seta AL",
-  {Geq, FloatVarType}: "comisd XMM1, XMM0\n  setbe AL",
-  {Leq, FloatVarType}: "comisd XMM1, XMM0\n  setae AL",
+  {Leq, FloatVarType}: "comisd XMM1, XMM0\n  setbe AL",
+  {Geq, FloatVarType}: "comisd XMM1, XMM0\n  setae AL",
 }
 
 

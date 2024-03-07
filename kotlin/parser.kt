@@ -23,8 +23,8 @@ class Parser(val text: String) {
       SymbolType.Neq to "cmp EBX, EAX\n  setnz AL",
       SymbolType.Lt to "cmp EBX, EAX\n  setl AL",
       SymbolType.Gt to "cmp EBX, EAX\n  setg AL",
-      SymbolType.Geq to "cmp EBX, EAX\n  setge AL",
-      SymbolType.Leq to "cmp EBX, EAX\n  setle AL")
+      SymbolType.Leq to "cmp EBX, EAX\n  setle AL",
+      SymbolType.Geq to "cmp EBX, EAX\n  setge AL")
   private val FLOAT_OPCODES = mapOf(
       SymbolType.Plus to "addsd XMM0, XMM1",
       SymbolType.Mult to "mulsd XMM0, XMM1",
@@ -34,8 +34,8 @@ class Parser(val text: String) {
       SymbolType.Neq to "comisd XMM1, XMM0\n  setnz AL",
       SymbolType.Lt to "comisd XMM1, XMM0\n  setb AL",
       SymbolType.Gt to "comisd XMM1, XMM0\n  seta AL",
-      SymbolType.Geq to "comisd XMM1, XMM0\n  setbe AL",
-      SymbolType.Leq to "comisd XMM1, XMM0\n  setae AL")
+      SymbolType.Leq to "comisd XMM1, XMM0\n  setbe AL",
+      SymbolType.Geq to "comisd XMM1, XMM0\n  setae AL")
   private val OPCODES = mapOf(
       VarType.Int to INT_OPCODES,
       VarType.Float to FLOAT_OPCODES)

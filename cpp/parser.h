@@ -34,8 +34,8 @@ public:
     cmpOpcodes.insert( { { NEQ, FLOAT}, "comisd XMM1, XMM0\n  setnz AL" });
     cmpOpcodes.insert( { { LT, FLOAT}, "comisd XMM1, XMM0\n  setb AL" });
     cmpOpcodes.insert( { { GT, FLOAT}, "comisd XMM1, XMM0\n  seta AL" });
-    cmpOpcodes.insert( { { GEQ, FLOAT}, "comisd XMM1, XMM0\n  setbe AL"});
-    cmpOpcodes.insert( { { LEQ, FLOAT}, "comisd XMM1, XMM0\n  setae AL" });
+    cmpOpcodes.insert( { { LEQ, FLOAT}, "comisd XMM1, XMM0\n  setbe AL" });
+    cmpOpcodes.insert( { { GEQ, FLOAT}, "comisd XMM1, XMM0\n  setae AL"});
   }
 
   vector<string> parse();
