@@ -295,7 +295,7 @@ class Parser
       when TokenType::Variable
         case @token.var_type
           when VarType::String
-            emit("mov RAX, _#{@token.value}")
+            emit("mov RAX, [_#{@token.value}]")
             advance()
             return VarType::String
 

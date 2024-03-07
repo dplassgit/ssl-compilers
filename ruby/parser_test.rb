@@ -110,6 +110,20 @@ class TestLexer< Test::Unit::TestCase
     assert_contains(code, "  extern printf")
   end
 
+  def test_assign_string_var
+    parser = Parser.new('s="hi" t=s')
+    code = parser.parse()
+    assert_contains(code, "  mov RAX, [_s]")
+    assert_contains(code, "  mov [_t], RAX")
+  end
+
+  def test_assign_int_var
+    parser = Parser.new('i=3 j=i')
+    code = parser.parse()
+    assert_contains(code, "  mov EAX, [_i]")
+    assert_contains(code, "  mov [_j], EAX")
+  end
+
   def test_add_int_constants
     parser = Parser.new('i=1+1')
     code = parser.parse()
