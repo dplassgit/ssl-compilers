@@ -35,10 +35,12 @@ project. I think I enjoyed the Kotlin version the most so far, maybe because
 of how it so easily builds string literals. The language reminds me of the best
 parts of Java and the best parts of Python.
 
+Ruby was ok, I guess. It thinks it's a better Python but in reality it's like
+the worst of Python and JavaScript...
+
 Future languages may include:
    * Scala
    * [d2lang](https://github.com/dplassgit/d2lang)
-   * Ruby
    * D
    * Rust
    * [Sly](https://github.com/dabeaz/sly) (a Python parser generator)
