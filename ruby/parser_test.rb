@@ -192,6 +192,7 @@ class TestLexer< Test::Unit::TestCase
     parser = Parser.new('if 1==2 then println "yes" else println "no" endif')
     code = parser.parse()
     assert_contains(code, "else_1:")
+    assert_contains(code, "  jmp endif_2")
     assert_contains(code, "endif_2:")
   end
 

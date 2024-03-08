@@ -100,7 +100,7 @@ class Parser
     end
     has_else = @token.is_keyword?(:else)
     if has_else
-      emit("jmp #{else_label}")
+      emit("jmp #{endif_label}")
     end
     emit_label(else_label)
     if has_else
