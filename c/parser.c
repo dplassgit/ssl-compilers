@@ -387,6 +387,31 @@ void emitCompare(SymbolType symbol) {
   }
 }
 
+void emitFloatCompare(SymbolType symbol) {
+  switch(symbol) {
+    case EQEQ:
+      emit("setz AL");
+      break;
+    case NEQ:
+      emit("setnz AL");
+      break;
+    case LT:
+      emit("setb AL");
+      break;
+    case LEQ:
+      emit("setbe AL");
+      break;
+    case GT:
+      emit("seta AL");
+      break;
+    case GEQ:
+      emit("setae AL");
+      break;
+    default:
+      break;
+  }
+}
+
 
 VarType generateFloatArith(SymbolType symbol) {
   emit("movq XMM1, [RSP]");
@@ -413,7 +438,7 @@ VarType generateFloatArith(SymbolType symbol) {
     case GT:
     case GEQ:
       emit("comisd XMM1, XMM0");
-      emitCompare(symbol);
+      emitFloatCompare(symbol);
       return BOOL;
 
     default:

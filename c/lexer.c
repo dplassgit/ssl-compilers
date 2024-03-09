@@ -83,10 +83,12 @@ Token *makeString(Lexer *this) {
     fail("Unclosed string literal");
   }
   advance(this); // eat the closing quote
+
   char *end = this->loc;
-  int len = end - start - 1;
-  char *literal = (char*)calloc(len, 0);
-  strncpy(literal, start, len - 1);
+  int length = end - start - 1;
+  char *literal = (char*)calloc(length, 1);
+  strncpy(literal, start, length - 1);
+
   Token *t = newToken(CONST, literal);
   t->tokenData.varType = STR;
   return t;
