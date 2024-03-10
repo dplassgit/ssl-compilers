@@ -1,6 +1,7 @@
-#    set -x # for debug output
+# for debug output
+# set -x
 
-LANGS=("ruby" "cpp" "golang" "java" "kotlin" "c")
+LANGS=("ruby" "cpp" "golang" "java" "kotlin" "c" "scala")
 EXES=(
   'bazel-bin/ruby/sslc.cmd'
   'bazel-bin/cpp/sslc.exe'
@@ -8,10 +9,12 @@ EXES=(
   'bazel-bin/java/com/plasstech/lang/ssl/sslc.exe'
   'bazel-bin/kotlin/sslc.exe'
   'bazel-bin/c/sslc.exe'
+  'scala.bat sslc.jar'
 )
 
 # Find all binary rules and remove the leading //
 bazel query 'kind(".*binary", ...)' | sed 's.//..' | xargs bazel build
+scalac.bat scala/src/main/scala/*.scala -d sslc.jar
 
 RED='\033[0;31m'
 GREEN='\033[1;32m'

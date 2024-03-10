@@ -35,11 +35,17 @@ project. I think I enjoyed the Kotlin version the most so far, maybe because
 of how it so easily builds string literals. The language reminds me of the best
 parts of Java and the best parts of Python.
 
-Ruby was ok, I guess. It thinks it's a better Python but in reality it's like
+(At this point I started writing tests with the code, instead of having to run
+against the samples manually.)
+
+Ruby was ok. It thinks it's a better Python, but to me, I feel it's like
 the worst of Python and JavaScript...
 
+Scala was new for me as well. It seemed really similar to Kotlin to me. I
+liked the ability to automatically run tests whenever a file changed (via the
+`~test` command in `sbt`.)
+
 Future languages may include:
-   * Scala
    * [d2lang](https://github.com/dplassgit/d2lang)
    * D
    * Rust
@@ -47,5 +53,4 @@ Future languages may include:
    * [ANTLR](https://www.antlr.org/) ("Another Tool for another parser generator")
    * awk
    * bash
-
 

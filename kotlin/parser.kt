@@ -56,6 +56,7 @@ class Parser(val text: String) {
   }
 
   fun parse() {
+    emit0("; kotlin")
     emit0("global main")
     emit0("section .text")
     emit0("main:")
