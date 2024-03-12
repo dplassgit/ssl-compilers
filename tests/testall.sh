@@ -1,5 +1,4 @@
-# for debug output
-#set -x
+#    set -x # for debug output
 
 LANGS=("ruby" "cpp" "golang" "java" "kotlin" "c")
 EXES=(
@@ -11,7 +10,7 @@ EXES=(
   'bazel-bin/c/sslc.exe'
 )
 
-# Find all binary rules and remove the leadin g//
+# Find all binary rules and remove the leading //
 bazel query 'kind(".*binary", ...)' | sed 's.//..' | xargs bazel build
 
 RED='\033[0;31m'
