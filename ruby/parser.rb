@@ -36,10 +36,11 @@ class Parser
     @string_table = {}
     @float_table = {}
     @id = 0
+    advance()
   end
 
   def parse()
-    advance()
+    emit0("; ruby")
     emit0("global main")
     emit0("section .text")
     emit0("main:")

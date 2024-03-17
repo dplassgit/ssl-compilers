@@ -62,6 +62,7 @@ public class Parser {
   }
 
   public ImmutableList<String> parse() {
+    emit0("; java");
     emit0("global main");
     emit0("section .text");
     emit0("main:");

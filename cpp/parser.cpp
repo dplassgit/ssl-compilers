@@ -25,6 +25,7 @@ template<typename T> string lookup(map<T, string> table, T key) {
 
 
 vector<string> Parser::parse() {
+  emit0("; cpp");
   emit0("global main");
   emit0("section .text");
   emit0("main:");

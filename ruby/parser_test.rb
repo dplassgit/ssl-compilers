@@ -6,7 +6,7 @@ class TestLexer< Test::Unit::TestCase
   def test_empty
     parser = Parser.new("")
     code = parser.parse()
-    assert_equal(code.length, 6)
+    assert_equal(code.length, 7)
   end
 
   def test_print_string

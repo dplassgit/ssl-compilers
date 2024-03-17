@@ -47,6 +47,7 @@ void emitLabel(char *label) {
 }
 
 void parse(Parser *this) {
+  emit0("; c");
   emit0("global main");
   emit0("section .text");
   emit0("main:");

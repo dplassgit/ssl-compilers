@@ -62,6 +62,7 @@ func NewParser(text string) Parser {
 }
 
 func (this *Parser) Parse() []string {
+  this.emit0("; golang")
   this.emit0("global main")
   this.emit0("section .text")
   this.emit0("main:")
