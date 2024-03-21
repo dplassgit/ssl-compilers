@@ -151,3 +151,26 @@ function makeTextToken(token) {
   }
 }
 
+
+# Make one big string, newline separated
+{ev = ev $0 "\n"}
+
+END {
+  # now process it
+  print "ev=" ev
+  t = 1
+  advance()
+  while (t != 0) {
+    token[0] = EOF
+    token[1] = ""
+    token[2] = ""
+    nextToken(token)
+    print "Token:" 
+    print token[0]
+    print token[1]
+    print token[2] "\n"
+    t = token[0] != EOF
+  }
+  print "\n"
+}
+
