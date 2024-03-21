@@ -1,0 +1,6 @@
+print "3>=4 Should be false:" 
+println 3>=4
+i=10
+j=20
+print "10<20 Should be true:" 
+println i<j

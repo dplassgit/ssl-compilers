@@ -7,6 +7,6 @@ a
 i
 s
 z
-for i IF THEN else endfor endif print
-println
-< > = >= <= != == *+/-
+for i to step IF THEN else endFor endif print println
+
+<> =>=<=!===*+/-

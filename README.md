@@ -48,12 +48,14 @@ I liked the ability to automatically run tests whenever a file changed (via the
 I went back and added tests for Python, Go and C++, when I revamped the two-character
 symbol lexical analysis.
 
+The awk implementation was kind of fun, but annoying, because it's completely
+un-type-checked. If you mistype a variable, it defaults to null/undefined, instead of
+giving an error...
+
 Future languages may include:
-   * awk (in progress)
    * [d2lang](https://github.com/dplassgit/d2lang)
    * D
    * Rust
    * [Sly](https://github.com/dabeaz/sly) (a Python parser generator)
    * [ANTLR](https://www.antlr.org/) ("Another Tool for another parser generator")
-   * bash
 

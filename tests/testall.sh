@@ -1,7 +1,7 @@
 # for debug output
 # set -x
 
-LANGS=("ruby" "cpp" "golang" "java" "kotlin" "c" "scala")
+LANGS=("ruby" "cpp" "golang" "java" "kotlin" "c" "scala" "awk")
 EXES=(
   'bazel-bin/ruby/sslc.cmd'
   'bazel-bin/cpp/sslc.exe'
@@ -10,6 +10,7 @@ EXES=(
   'bazel-bin/kotlin/sslc.exe'
   'bazel-bin/c/sslc.exe'
   'scala.bat sslc.jar'
+  'awk -f awk/sslc.awk'
 )
 
 # Find all binary rules and remove the leading //

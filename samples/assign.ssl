@@ -1,4 +1,4 @@
 i=123
-k=i
-i=456
+ k = i
+i= 456
 println k
