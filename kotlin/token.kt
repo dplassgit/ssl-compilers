@@ -51,11 +51,11 @@ open class Token(val type: TokenType, val value: String) {
   }
 
   open fun varType(): VarType {
-    throw IllegalArgumentException("Non-VarType Token")
+    throw IllegalArgumentException("Non-typed Token")
   }
 
   open fun symbol(): SymbolType {
-    throw IllegalArgumentException("Non-Symbol Token")
+    throw IllegalArgumentException("Non-symbol Token")
   }
 
   override fun toString(): String {

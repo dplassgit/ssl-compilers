@@ -13,18 +13,24 @@
 # Executables
 *.exe
 *.asm
+
+# vim
 *.swp
+
+# Bazel
 /bin/
 bazel-bin/
 bazel-out/
 bazel-testlogs/
 bazel-ssl-compilers/
 *.out
+
+# Scala
 target/
 project/
 out/
-*.jar
 .bsp/
-*.jar
 
+# Java stuff
+*.jar
 .settings/

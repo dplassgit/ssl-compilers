@@ -62,11 +62,16 @@ func (this *Lexer) makeSymbol() Token {
   first := this.cc
   value := string(first)
   this.advance()
-  if this.cc == '=' && (first == '!' || first == '=' || first == '>' || first == '<') {
-    value += string(this.cc)
+
+  maybeTwo := value + string(this.cc)
+  symbolType, ok := toSymbolType[maybeTwo]
+  if ok {
+    // Two-letter symbol
     this.advance()
+    return Token{tokenType: Symbol, value: maybeTwo, symbol: symbolType}
   }
-  symbolType, ok := toSymbolType[value]
+
+  symbolType, ok = toSymbolType[value]
   if ok {
     return Token{tokenType: Symbol, value: value, symbol: symbolType}
   }

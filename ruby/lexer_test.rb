@@ -91,5 +91,14 @@ class TestLexer< Test::Unit::TestCase
       assert_equal(t.symbol, SYMBOLS[i])
     end
   end
+
+  def test_next_token_all_symbol
+    lexer = Lexer.new("<> =>=<=!===*+/-")
+    expected = [:lt, :gt, :eq, :geq, :leq, :neq, :eq_eq, :mult, :plus, :div, :minus]
+    for i in expected
+      t = lexer.next_token
+      assert_equal(t.symbol, i)
+    end
+  end
 end
 

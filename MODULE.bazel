@@ -9,6 +9,10 @@ maven.install(
     name = "sslcompilers_maven",
     artifacts = [
         "com.google.guava:guava:33.0.0-jre",
+        "com.google.guava:guava-testlib:33.0.0-jre",
+        "com.google.truth:truth:1.1.5",
+        "com.google.truth.extensions:truth-java8-extension:1.1.5",
+        "junit:junit:4.13.2",
     ],
     fetch_sources = True,
     repositories = [
@@ -31,3 +35,5 @@ ruby.bundle_fetch(
 )
 use_repo(ruby, "bundle", "ruby_toolchains")
 register_toolchains("@ruby_toolchains//:all")
+
+bazel_dep(name = "googletest", version = "1.14.0")

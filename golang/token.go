@@ -83,6 +83,20 @@ var toSymbolType = map[string]SymbolType {
   ">": Gt,
 }
 
+var fromSymbolType = map[SymbolType]string {
+  Plus: "+",
+  Minus: "-",
+  Mult: "*",
+  Div: "/",
+  EqEq: "==",
+  Eq: "=",
+  Neq: "!=",
+  Leq: "<=",
+  Lt: "<",
+  Geq: ">=",
+  Gt: ">",
+}
+
 type Token struct {
   tokenType TokenType
   value string

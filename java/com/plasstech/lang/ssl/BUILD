@@ -14,6 +14,7 @@ java_library(
         "VarToken.java",
         "VarType.java",
     ],
+    visibility = ["//visibility:public"],
     deps = ["@sslcompilers_maven//:com_google_guava_guava"],
 )
 

@@ -17,8 +17,10 @@ enum Symbol {
   PLUS = 0, MINUS, MULT, DIV, EQEQ, EQ, NEQ, LEQ, LT, GEQ, GT, NO_SYMBOL = -1
 };
 
-static const std::string SYMBOLS[] = { "+", "-", "*", "/", "==", "=", "!=",
-    "<=", "<", ">=", ">" };
+static const std::string SYMBOLS[] = {
+  "+", "-", "*", "/", "==", "=", "!=", "<=", "<", ">=", ">" };
+
+#define N_SYMBOLS 11
 
 class Token {
 public:

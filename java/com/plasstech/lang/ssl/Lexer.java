@@ -1,11 +1,6 @@
 package com.plasstech.lang.ssl;
 
-import com.google.common.collect.ImmutableSet;
-
 public class Lexer {
-  private static final ImmutableSet<Character> EQUALS_CAN_FOLLOW =
-      ImmutableSet.of('>', '!', '<', '=');
-
   private final String text;
 
   private int loc;
@@ -56,19 +51,32 @@ public class Lexer {
     return makeSymbol();
   }
 
-  private Token makeSymbol() {
-    var first = cc;
-    String symbolString = String.valueOf(first);
-    advance(); // eat the first
-    if (EQUALS_CAN_FOLLOW.contains(first) && cc == '=') {
-      symbolString += cc;
-      advance(); // eat the second
-    }
+  private Symbol toSymbol(String symbolString) {
     for (Symbol symbolEnum : Symbol.values()) {
       if (symbolEnum.value.equals(symbolString)) {
-        return new SymbolToken(symbolEnum);
+        return symbolEnum;
       }
     }
+    return null;
+  }
+
+  private Token makeSymbol() {
+    var symbolString = String.valueOf(cc);
+    advance(); // eat the first
+
+    var maybeTwoCharSymbolString = symbolString + cc;
+    var maybeTwoCharSymbol = toSymbol(maybeTwoCharSymbolString);
+    if (maybeTwoCharSymbol != null) {
+      advance(); // eat the second
+      return new SymbolToken(maybeTwoCharSymbol);
+    }
+
+    var symbol = toSymbol(symbolString);
+    if (symbol != null) {
+      // NO ADVANCE HERE - we already advanced
+      return new SymbolToken(symbol);
+    }
+
     fail("Unknown symbol " + symbolString);
     return null;
   }

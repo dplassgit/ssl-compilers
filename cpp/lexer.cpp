@@ -1,9 +1,10 @@
-#include "lexer.h"
-#include "keyword.h"
-#include "token.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
+
+#include "keyword.h"
+#include "lexer.h"
+#include "token.h"
 
 using namespace std;
 
@@ -40,11 +41,10 @@ Token* Lexer::nextToken() {
 }
 
 void Lexer::advance() {
+  cc = 0;
   if (loc < text.length()) {
     cc = text[loc];
     loc++;
-  } else {
-    cc = 0;
   }
 }
 
@@ -56,16 +56,16 @@ Token* Lexer::makeNumber() {
     value += cc;
     advance();
   }
-  if (cc == '.') {
+  if (cc != '.') {
+    return new Token(CONST, value, INT);
+  }
+  value += cc;
+  advance();
+  while (isdigit(cc)) {
     value += cc;
     advance();
-    while (isdigit(cc)) {
-      value += cc;
-      advance();
-    }
-    return new Token(CONST, value, FLOAT);
   }
-  return new Token(CONST, value, INT);
+  return new Token(CONST, value, FLOAT);
 }
 
 string str_toupper(string s) {
@@ -81,11 +81,11 @@ Token* Lexer::makeText() {
   advance();
   if (!isalpha(cc)) {
     // next char is not alpha: it's a variable
+    char lowerFirst = tolower(first);
     VarType varType = STR;
-    if (first >= 'a' && first <= 'h') {
+    if (lowerFirst >= 'a' && lowerFirst <= 'h') {
       varType = FLOAT;
-    }
-    if (first >= 'i' && first <= 'n') {
+    } else if (lowerFirst <= 'n') {
       varType = INT;
     }
     return new Token(VAR, value, varType);
@@ -97,7 +97,7 @@ Token* Lexer::makeText() {
   }
   Token *t = new Token(KEYWORD, value);
   string uppervalue = str_toupper(value);
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < N_KEYWORDS; ++i) {
     if (uppervalue == KEYWORDS[i]) {
       return t->keyword((Keyword) i);
     }
@@ -115,7 +115,7 @@ Token* Lexer::makeString() {
     advance();
   }
   if (cc == 0) {
-    cerr << "Expected closing double quote, found EOF" << endl;
+    cerr << "Unclosed string literal" << endl;
     exit(-1);
     return NULL;
   }
@@ -127,54 +127,26 @@ Token* Lexer::makeSymbol() {
   char first = cc;
   string value(1, first);
   advance();
-  if (first == '!') {
-    if (cc == '=') {
-      value += cc;
-      advance();
+
+  // See if it's a 2-char symbol
+  string maybeTwoChar(1, first);
+  maybeTwoChar += cc;
+  for (int i = 0; i < N_SYMBOLS; ++i) {
+    if (maybeTwoChar == SYMBOLS[i]) {
+      advance();  // eat the 2nd char
+      Symbol st = (Symbol) i;
+      Token *t = new Token(SYMBOL, maybeTwoChar);
+      return t->symbol(st);
+    }
+  }
+  for (int i = 0; i < N_SYMBOLS; ++i) {
+    if (value == SYMBOLS[i]) {
+      Symbol st = (Symbol) i;
       Token *t = new Token(SYMBOL, value);
-      return t->symbol(NEQ);
-    }
-    cerr << "Unknown symbol !" << endl;
-    exit(-1);
-    return NULL;
-  }
-
-  Symbol st = NO_SYMBOL;
-  if (cc == '=') {
-    switch (first) {
-    case '=':
-      st = EQEQ;
-      value += cc;
-      advance();
-      break;
-    case '>':
-      st = GEQ;
-      value += cc;
-      advance();
-      break;
-    case '<':
-      st = LEQ;
-      value += cc;
-      advance();
-      break;
-    default:
-      break;
+      return t->symbol(st);
     }
   }
-  if (st == NO_SYMBOL) {
-    for (int i = 0; i < 11; ++i) {
-      if (value == SYMBOLS[i]) {
-        st = (Symbol) i;
-        break;
-      }
-    }
-  }
-
-  if (st == NO_SYMBOL) {
-    cerr << "Unknown symbol " << value << endl;
-    exit(-1);
-    return NULL;
-  }
-  Token *t = new Token(SYMBOL, value);
-  return t->symbol(st);
+  cerr << "Unknown symbol " << value << endl;
+  exit(-1);
+  return NULL;
 }

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_binary(
     name = "sslc",
@@ -14,6 +14,17 @@ go_library(
         "sslc.go",
         "token.go",
     ],
-    importpath = ".",
+    visibility = ["//visibility:private"],
+)
+
+go_test(
+    name = "tests",
+    srcs = [
+        "lexer_test.go",
+    ],
+    # This cannot be deps
+    embed = [":golang_lib"],
+    # This is relative to the workspace root.
+    importpath = "golang",
     visibility = ["//visibility:private"],
 )

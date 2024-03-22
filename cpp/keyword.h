@@ -20,4 +20,6 @@ enum Keyword {
 static const std::string KEYWORDS[] = { "FOR", "TO", "STEP", "ENDFOR", "IF",
     "THEN", "ELSE", "ENDIF", "PRINT", "PRINTLN" };
 
+#define N_KEYWORDS 10
+
 #endif

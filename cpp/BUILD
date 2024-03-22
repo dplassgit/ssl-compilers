@@ -3,17 +3,26 @@ cc_library(
     srcs = [
         "lexer.cpp",
         "parser.cpp",
-        "sslc.cpp",
     ],
     hdrs = [
-        "lexer.h",
         "keyword.h",
+        "lexer.h",
         "parser.h",
         "token.h",
     ],
 )
 
+cc_test(
+    name = "tests",
+    srcs = ["lexer_test.cpp"],
+    deps = [
+        ":sslc_lib",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_binary(
     name = "sslc",
+    srcs = ["sslc.cpp"],
     deps = ["sslc_lib"],
 )

@@ -175,13 +175,27 @@ class LexerTest extends AnyFunSuite:
     assertThrows[Exception]{lexer.nextToken()}
   }
 
-  test("all symbols") {
+  test("all symbols separated by spaces") {
     val allSymbols = SymbolType.values.filter(_ != SymbolType.NoSymbol)
     val program = allSymbols.map(_.text()).mkString(" ")
 
     val lexer = new Lexer(program)
 
     for st <- allSymbols do
+      val t = lexer.nextToken()
+      assert(t.tokenType() == TokenType.Symbol)
+      assert(t.symbolType() == st)
+    val t = lexer.nextToken()
+    assert(t.tokenType() == TokenType.EndOfFile)
+  }
+
+  test("all symbols") {
+    val lexer = new Lexer("<> =>=<=!===*+/-")
+    val expected = List(SymbolType.Lt, SymbolType.Gt, SymbolType.Eq,
+      SymbolType.Geq, SymbolType.Leq, SymbolType.Neq, SymbolType.EqEq,
+      SymbolType.Mult, SymbolType.Plus, SymbolType.Div, SymbolType.Minus)
+
+    for st <- expected do
       val t = lexer.nextToken()
       assert(t.tokenType() == TokenType.Symbol)
       assert(t.symbolType() == st)

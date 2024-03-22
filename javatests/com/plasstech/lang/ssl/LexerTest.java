@@ -2,7 +2,11 @@ package com.plasstech.lang.ssl;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 public class LexerTest {
 
@@ -82,7 +86,7 @@ public class LexerTest {
 
   @Test
   public void nextTokenKeywordVar() {
-    Lexer lexer = new Lexer("if then else endif for endfor print println");
+    Lexer lexer = new Lexer("if then else endif for to endfor print println");
     Token token = lexer.nextToken();
     while (token.type != TokenType.EOF) {
       assertThat(token.type).isEqualTo(TokenType.KEYWORD);
@@ -103,39 +107,38 @@ public class LexerTest {
     assertThat(token.type).isEqualTo(TokenType.EOF);
   }
 
-  @Test
-  public void nextTokenSymbol() {
-    assertSymbol("+", Symbol.PLUS);
-  }
+  private static final List<Symbol> EXPECTED_SYMBOLS = ImmutableList.of(
+      Symbol.LT,
+      Symbol.GT,
+      Symbol.EQ,
+      Symbol.GEQ,
+      Symbol.LEQ,
+      Symbol.NEQ,
+      Symbol.EQEQ,
+      Symbol.MULT,
+      Symbol.PLUS,
+      Symbol.DIV,
+      Symbol.MINUS);
 
   @Test
-  public void nextTokenSymbolEq() {
-    assertSymbol("=", Symbol.EQ);
-  }
-
-  @Test
-  public void nextTokenSymbolEqEq() {
-    assertSymbol("==", Symbol.EQEQ);
-  }
-
-  @Test
-  public void nextTokenSymbolNeq() {
-    assertSymbol("!=", Symbol.NEQ);
-  }
-
-  @Test
-  public void nextTokenSymbolLeq() {
-    assertSymbol("<=", Symbol.LEQ);
+  public void nextTokenAllSymbolsSpaceSeparated() {
+    Lexer lexer = new Lexer("<> = >= <= != == * + / -");
+    for (Symbol s : EXPECTED_SYMBOLS) {
+      Token token = lexer.nextToken();
+      assertThat(token.type).isEqualTo(TokenType.SYMBOL);
+      SymbolToken sToken = (SymbolToken) token;
+      assertThat(sToken.symbol()).isEqualTo(s);
+    }
   }
 
   @Test
   public void nextTokenAllSymbols() {
-    Lexer lexer = new Lexer("+ - * / = < <= == != >= >");
-    Token token = lexer.nextToken();
-    while (token.type != TokenType.EOF) {
+    Lexer lexer = new Lexer("<> =>=<=!===*+/-");
+    for (Symbol s : EXPECTED_SYMBOLS) {
+      Token token = lexer.nextToken();
       assertThat(token.type).isEqualTo(TokenType.SYMBOL);
-      System.out.print(token.stringValue + " ");
-      token = lexer.nextToken();
+      SymbolToken sToken = (SymbolToken) token;
+      assertThat(sToken.symbol()).isEqualTo(s);
     }
   }
 
@@ -153,13 +156,5 @@ public class LexerTest {
     while (token.type != TokenType.EOF) {
       token = lexer.nextToken();
     }
-  }
-
-  private void assertSymbol(String input, Symbol value) {
-    Lexer lexer = new Lexer(input);
-    Token token = lexer.nextToken();
-    assertThat(token.type).isEqualTo(TokenType.SYMBOL);
-    SymbolToken symbol = (SymbolToken) token;
-    assertThat(symbol.symbol()).isEqualTo(value);
   }
 }

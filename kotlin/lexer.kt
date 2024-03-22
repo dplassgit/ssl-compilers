@@ -1,7 +1,6 @@
 package com.plasstech.lang.ssl
 
 class Lexer(val text: String) {
-  private val EQUALS_FOLLOWS = setOf("!", "<", ">", "=")
   private val ZERO = '\u0000'
 
   private var loc = 0 // current location in the text
@@ -52,19 +51,25 @@ class Lexer(val text: String) {
   }
 
   private fun makeSymbol(): Token {
-    var sym = cc.toString()
+    val first = cc.toString()
     advance()
-    if (cc == '=' && EQUALS_FOLLOWS.contains(sym)) {
-      sym += cc.toString()
-      advance()
-    }
 
-    for (st in SymbolType.values()) {
-      if (st.value == sym) {
-        return SymbolToken(sym, st)
+    if (cc != ZERO) {
+      val maybeTwoCharSymbol = first + cc.toString()
+      for (symbol in SymbolType.values()) {
+        if (symbol.value == maybeTwoCharSymbol) {
+          advance() // eat the 2nd symbol
+          return SymbolToken(maybeTwoCharSymbol, symbol)
+        }
       }
     }
-    throw IllegalStateException("Unknown symbol $sym")
+    for (symbol in SymbolType.values()) {
+      if (symbol.value == first) {
+        // don't eat the first symbol; it was already eaten.
+        return SymbolToken(first, symbol)
+      }
+    }
+    throw IllegalStateException("Unknown symbol $first")
   }
 
 

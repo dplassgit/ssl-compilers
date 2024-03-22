@@ -23,18 +23,21 @@ class Lexer(
     else
       makeSymbol()
 
-  private val EQUALS_FOLLOWS = Set("!", "<", ">", "=")
-
   private def makeSymbol(): Token =
-    var soFar = _cc.toString
+    val first = _cc.toString
     advance()
-    if _cc == '=' && EQUALS_FOLLOWS.contains(soFar) then
-      soFar += _cc
-      advance()
-    var maybeSt = SymbolType.values.find(st => {st.text() == soFar})
+    if _cc != 0 then
+      val maybeTwo = first + _cc
+      val maybeSymbol = SymbolType.values.find(st => {st.text() == maybeTwo})
+      if maybeSymbol.isDefined then
+        // Two-character symbol!
+        advance()
+        return new Token(maybeSymbol.get)
+      // else, fall through
+    val maybeSt = SymbolType.values.find(st => {st.text() == first})
     maybeSt match
       case Some(st) => new Token(st)
-      case None => fail(s"Cannot parse $soFar")
+      case None => fail(s"Bad symbol $first")
 
   private def makeString(): Token =
     advance()  // eat quote
@@ -68,7 +71,7 @@ class Lexer(
       // one letter
       if first >= 'a' && first <= 'h' then
         newVariable(soFar.toString, VarType.VarTypeFloat)
-      else if first >= 'i' && first <= 'n' then
+      else if first <= 'n' then
         newVariable(soFar.toString, VarType.VarTypeInt)
       else
         newVariable(soFar.toString, VarType.VarTypeString)

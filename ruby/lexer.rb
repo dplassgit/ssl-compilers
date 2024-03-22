@@ -41,14 +41,18 @@ class Lexer
     first = @cc
     val = first
     advance()
-    if ['=', '<', '>', '!'].include?(first)
-      # equals can follow
-      if not @cc.nil? and @cc == '='
-        val += '='
+    if not @cc.nil?
+      # Maybe a two-character symbol
+      maybeTwo = first + @cc
+      index = SYMBOL_STRINGS.index(maybeTwo)
+      if not index.nil?
         advance()
+        sym = SYMBOLS[index]
+        return Token.new(type: TokenType::Symbol, value: maybeTwo, symbol: sym)
       end
+      # Nope, try just the first one.
     end
-    index = SYMBOL_STRINGS.index(val)
+    index = SYMBOL_STRINGS.index(first)
     if index.nil?
       fail("Unknown symbol #{val}")
     end
