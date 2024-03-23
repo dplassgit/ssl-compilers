@@ -26,3 +26,5 @@ out/
 *.jar
 .bsp/
 *.jar
+
+.settings/
