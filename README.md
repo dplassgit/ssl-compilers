@@ -41,16 +41,19 @@ against the samples manually.)
 Ruby was ok. It thinks it's a better Python, but to me, I feel it's like
 the worst of Python and JavaScript...
 
-Scala was new for me as well. It seemed really similar to Kotlin to me. I
-liked the ability to automatically run tests whenever a file changed (via the
+Scala was new for me as well. It seems to be a cross between Kotlin and Python.
+I liked the ability to automatically run tests whenever a file changed (via the
 `~test` command in `sbt`.)
 
+I went back and added tests for Python, Go and C++, when I revamped the two-character
+symbol lexical analysis.
+
 Future languages may include:
+   * awk (in progress)
    * [d2lang](https://github.com/dplassgit/d2lang)
    * D
    * Rust
    * [Sly](https://github.com/dabeaz/sly) (a Python parser generator)
    * [ANTLR](https://www.antlr.org/) ("Another Tool for another parser generator")
-   * awk
    * bash
 
