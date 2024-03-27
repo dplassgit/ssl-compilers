@@ -259,6 +259,7 @@ function makeTextToken(token) {
 #################################################################
 
 function parse() {
+  print "; awk"
   print "global main"
   print "section .text"
   print "main:"
